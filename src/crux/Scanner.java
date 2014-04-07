@@ -30,8 +30,8 @@ public class Scanner
 	{
 		input = source;
 		accumulator = new StringBuilder();
-		lineNumber = 0;
-		columnNumber = -1;
+		lineNumber = 1;
+		columnNumber = 0;
 		token = null;
 		context = new ScannerTransitionContext();
 		currentState = StartState.instance();
