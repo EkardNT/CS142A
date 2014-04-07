@@ -17,8 +17,9 @@ public interface TransitionContext
 	public boolean isDecimalSeparator();
 	public boolean isDigit();
 	public boolean isLetter();	
-	public boolean isWhitespace();	
+	public boolean isWhitespace();
 	public boolean isEof();
 	public boolean isSymbol();
 	public boolean isNewline();
+	public boolean existsSymbolWithAccumulatedAsPrefix();
 }

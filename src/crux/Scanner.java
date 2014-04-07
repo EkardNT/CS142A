@@ -180,22 +180,22 @@ public class Scanner
 		
 		public boolean isDecimalSeparator()
 		{
-			return eof && value == '.';
+			return !eof && value == '.';
 		}
 		
 		public boolean isDigit()
 		{
-			return eof && Character.isDigit(value);
+			return !eof && Character.isDigit(value);
 		}
 		
 		public boolean isLetter()
 		{
-			return eof && ((value >= 'a' && value <= 'z') || (value >= 'A' && value <= 'Z'));			
+			return !eof && ((value >= 'a' && value <= 'z') || (value >= 'A' && value <= 'Z'));			
 		}
 		
 		public boolean isWhitespace()
 		{
-			return eof && Character.isWhitespace(value);
+			return !eof && Character.isWhitespace(value);
 		}
 		
 		public boolean isEof()
@@ -218,19 +218,32 @@ public class Scanner
 		@Override
 		public boolean isSymbol() 
 		{
-			return eof && symbolChars.contains(new Character(value));
+			return !eof && symbolChars.contains(new Character(value));
 		}
 
 		@Override
 		public boolean isNewline() 
 		{
-			return eof && (value == '\n' || value == '\r');
+			return !eof && (value == '\n' || value == '\r');
 		}
 
 		@Override
 		public void popAllChars() 
 		{
 			accumulator.setLength(0);
+		}
+
+		@Override
+		public boolean existsSymbolWithAccumulatedAsPrefix()
+		{
+			// Should use a trie or other prefix tree here,
+			// but n is small and deadlines loom, so settle
+			// for this O(n) linear search.
+			String prefix = accumulated();
+			for(String symbolString : symbols.keySet())
+				if(symbolString.startsWith(prefix))
+					return true;
+			return false;
 		}
 	}
 }
