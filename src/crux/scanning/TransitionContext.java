@@ -1,8 +1,6 @@
 package crux.scanning;
 
 import java.util.Map;
-import java.util.Set;
-
 import crux.Token;
 import crux.Token.Kind;
 

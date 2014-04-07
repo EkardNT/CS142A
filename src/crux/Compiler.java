@@ -9,15 +9,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import crux.Token.Kind;
-import crux.scanning.Scanner;
 
-public class Program 
+public class Compiler 
 {
 	public static void main(String[] args)
 	{
 		Scanner scanner = new Scanner();
-		System.out.println(System.getProperty("user.dir"));
-		
 		
 		for(String path : args)
 		{
@@ -29,12 +26,26 @@ public class Program
 				do
 				{
 					token = scanner.next();
-					System.out.printf(
-						"%-12s%-10s%-3s%-3s\n",
-						token.getKind(),
-						token.getLexeme(),
-						token.getLineNumber(),
-						token.getCharPos());
+					switch(token.getKind())
+					{
+						case IDENTIFIER:
+						case FLOAT:
+						case INTEGER:
+							System.out.printf(
+								"%s(%s)(lineNum:%s, charPos:%s)\n",
+								token.getKind(),
+								token.getLexeme(),
+								token.getLineNumber(),
+								token.getCharPos());
+							break;
+						default:
+							System.out.printf(
+								"%s(lineNum:%s, charPos:%s)\n",
+								token.getKind(),
+								token.getLineNumber(),
+								token.getCharPos());
+							break;
+					}
 				}
 				while(token.getKind() != Kind.EOF);
 				reader.close();

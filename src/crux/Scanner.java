@@ -1,14 +1,15 @@
-package crux.scanning;
+package crux;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
-import crux.Token;
 import crux.Token.Kind;
+import crux.scanning.StartState;
+import crux.scanning.State;
+import crux.scanning.TransitionContext;
 
 // Converts input source into a stream of tokens.
 public class Scanner 
