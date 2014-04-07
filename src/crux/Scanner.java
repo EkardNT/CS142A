@@ -21,7 +21,7 @@ public class Scanner
 	private BufferedReader input;
 	
 	private StringBuilder accumulator;	
-	private int lineNumber, columnNumber;	
+	private int tokenStartLineNumber, tokenStartColumnNumber, nextReadLineNumber, nextReadColumnNumber;
 	private boolean eof;	
 	private char value;
 	private State currentState;
@@ -32,23 +32,21 @@ public class Scanner
 	{
 		input = source;
 		accumulator = new StringBuilder();
-		lineNumber = 1;
-		columnNumber = 0;
 		context = new ScannerTransitionContext();
 		currentState = StartState.instance();
 		emittedTokens = new LinkedList<Token>();
+		tokenStartLineNumber = nextReadLineNumber = 1;
+		tokenStartColumnNumber = nextReadColumnNumber = 1;
 	}
 	
 	public Token next()
 	{
 		if(eof)
-			return new Token(Kind.EOF, "", lineNumber, columnNumber);
+			return new Token(Kind.EOF, "", tokenStartLineNumber, tokenStartColumnNumber);
 		
 		while(emittedTokens.size() == 0)
 		{
 			int rawValue = readChar();
-			
-			columnNumber++;
 			
 			if(rawValue < 0)
 			{
@@ -58,8 +56,6 @@ public class Scanner
 			else
 			{
 				value = (char)rawValue;
-				if(value == '\n' || value == '\r')
-					lineNumber++;
 			}
 			
 			currentState = currentState.transition(context);
@@ -72,7 +68,14 @@ public class Scanner
 	{
 		try
 		{
-			return input.read();
+			int readVal = input.read();
+			nextReadColumnNumber++;
+			if(readVal >= 0 && (readVal == (int)'\n' || readVal == (int)'\r'))
+			{
+				nextReadLineNumber++;
+				nextReadColumnNumber = 1;
+			}
+			return readVal;
 		}
 		catch (IOException e)
 		{
@@ -174,8 +177,10 @@ public class Scanner
 		
 		public void emit(Token.Kind kind)
 		{
-			emittedTokens.add(new Token(kind, accumulator.toString(), lineNumber, columnNumber));
+			emittedTokens.add(new Token(kind, accumulator.toString(), tokenStartLineNumber, tokenStartColumnNumber));
 			accumulator.setLength(0);
+			tokenStartLineNumber = nextReadLineNumber;
+			tokenStartColumnNumber = nextReadColumnNumber;
 		}
 		
 		public boolean isDecimalSeparator()
