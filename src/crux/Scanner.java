@@ -153,7 +153,7 @@ public class Scanner
 		
 		public char value()
 		{
-			return value;
+			return eof ? Character.MIN_VALUE : value;
 		}
 		
 		public void pushChar() 
@@ -180,22 +180,22 @@ public class Scanner
 		
 		public boolean isDecimalSeparator()
 		{
-			return value == '.';
+			return eof && value == '.';
 		}
 		
 		public boolean isDigit()
 		{
-			return Character.isDigit(value);
+			return eof && Character.isDigit(value);
 		}
 		
 		public boolean isLetter()
 		{
-			return (value >= 'a' && value <= 'z') || (value >= 'A' && value <= 'Z');			
+			return eof && ((value >= 'a' && value <= 'z') || (value >= 'A' && value <= 'Z'));			
 		}
 		
 		public boolean isWhitespace()
 		{
-			return Character.isWhitespace(value);
+			return eof && Character.isWhitespace(value);
 		}
 		
 		public boolean isEof()
@@ -218,13 +218,13 @@ public class Scanner
 		@Override
 		public boolean isSymbol() 
 		{
-			return symbolChars.contains(new Character(value));
+			return eof && symbolChars.contains(new Character(value));
 		}
 
 		@Override
 		public boolean isNewline() 
 		{
-			return value == '\n' || value == '\r';
+			return eof && (value == '\n' || value == '\r');
 		}
 
 		@Override
