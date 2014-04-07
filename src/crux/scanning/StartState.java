@@ -17,12 +17,12 @@ public class StartState implements State
 		}
 		if(context.isDigit())
 		{
-			context.accumulate();
+			context.pushChar();
 			return NumberState.instance();
 		}
 		if(context.value() == '.')
 		{
-			context.accumulate();
+			context.pushChar();
 			return FloatState.instance();
 		}
 		if(context.isWhitespace())
@@ -31,15 +31,20 @@ public class StartState implements State
 		}
 		if(context.isLetter() || context.value() == '_')
 		{
-			context.accumulate();
+			context.pushChar();
 			return WordState.instance();
+		}
+		if(context.value() == '/')
+		{
+			context.pushChar();
+			return CommentOrDivState.instance();
 		}
 		if(context.isSymbol())
 		{
-			context.accumulate();
+			context.pushChar();
 			return SymbolState.instance();
 		}
-		context.accumulate();
+		context.pushChar();
 		context.emit(Kind.ERROR);
 		return this;
 	}		

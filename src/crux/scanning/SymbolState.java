@@ -1,11 +1,12 @@
 package crux.scanning;
 
+import crux.Token.Kind;
+
 public class SymbolState implements State
 {
 	private static final SymbolState inst = new SymbolState();
 	public static SymbolState instance() { return inst; }
-	
-	
+		
 	@Override
 	public State transition(TransitionContext context)
 	{
@@ -17,12 +18,12 @@ public class SymbolState implements State
 				context.emit(context.getSymbols().get(str));
 				return StartState.instance();
 			}
-			context.accumulate();
-			return DrainErrorState.instance();
+			context.emit(Kind.ERROR);
+			return StartState.instance();
 		}
 		if(context.isSymbol())
 		{
-			context.accumulate();
+			context.pushChar();
 			return this;
 		}
 		String str = context.accumulated();
@@ -31,7 +32,8 @@ public class SymbolState implements State
 			context.emit(context.getSymbols().get(str));
 			return StartState.instance().transition(context);
 		}
-		context.accumulate();
-		return DrainErrorState.instance();
+		context.pushChar();
+		context.emit(Kind.ERROR);
+		return StartState.instance();
 	}
 }

@@ -4,7 +4,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 
 import crux.Token.Kind;
 import crux.scanning.StartState;
@@ -22,9 +24,9 @@ public class Scanner
 	private int lineNumber, columnNumber;	
 	private boolean eof;	
 	private char value;
-	private Token token;
 	private State currentState;
 	private TransitionContext context;
+	private Queue<Token> emittedTokens;
 	
 	public void beginReadFrom(BufferedReader source)
 	{
@@ -32,9 +34,9 @@ public class Scanner
 		accumulator = new StringBuilder();
 		lineNumber = 1;
 		columnNumber = 0;
-		token = null;
 		context = new ScannerTransitionContext();
 		currentState = StartState.instance();
+		emittedTokens = new LinkedList<Token>();
 	}
 	
 	public Token next()
@@ -42,7 +44,7 @@ public class Scanner
 		if(eof)
 			return new Token(Kind.EOF, "", lineNumber, columnNumber);
 		
-		while(token == null)
+		while(emittedTokens.size() == 0)
 		{
 			int rawValue = readChar();
 			
@@ -63,17 +65,15 @@ public class Scanner
 			currentState = currentState.transition(context);
 		}
 				
-		Token toReturn = token;
-		token = null;
-		return toReturn;
+		return emittedTokens.remove();
 	}
 	
 	private int readChar()
 	{
-		try 
+		try
 		{
 			return input.read();
-		} 
+		}
 		catch (IOException e)
 		{
 			return -1;
@@ -156,14 +156,25 @@ public class Scanner
 			return value;
 		}
 		
-		public void accumulate() 
+		public void pushChar() 
 		{
 			accumulator.append(value);
 		}
 		
+		public char popChar()
+		{
+			if(accumulator.length() > 0)
+			{
+				char val = accumulator.charAt(accumulator.length() - 1);
+				accumulator.setLength(accumulator.length() - 1);
+				return val;
+			}
+			return Character.MIN_VALUE;
+		}
+		
 		public void emit(Token.Kind kind)
 		{
-			token = new Token(kind, accumulator.toString(), lineNumber, columnNumber);
+			emittedTokens.add(new Token(kind, accumulator.toString(), lineNumber, columnNumber));
 			accumulator.setLength(0);
 		}
 		
@@ -208,6 +219,18 @@ public class Scanner
 		public boolean isSymbol() 
 		{
 			return symbolChars.contains(new Character(value));
+		}
+
+		@Override
+		public boolean isNewline() 
+		{
+			return value == '\n' || value == '\r';
+		}
+
+		@Override
+		public void popAllChars() 
+		{
+			accumulator.setLength(0);
 		}
 	}
 }

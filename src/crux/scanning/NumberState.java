@@ -10,29 +10,17 @@ public class NumberState implements State
 	@Override
 	public State transition(TransitionContext context)
 	{
-		if(context.isEof() || context.isWhitespace())
-		{
-			context.emit(Kind.INTEGER);
-			return StartState.instance();
-		}
 		if(context.isDigit())
 		{
-			context.accumulate();
+			context.pushChar();
 			return this;
 		}
 		if(context.isDecimalSeparator())
 		{
-			context.accumulate();
+			context.pushChar();
 			return FloatState.instance();
 		}
-		if(context.isSymbol())
-		{
-			context.emit(Kind.INTEGER);
-			context.accumulate();
-			return SymbolState.instance();
-		}
-		context.accumulate();
-		context.emit(Kind.ERROR);
-		return StartState.instance();
+		context.emit(Kind.INTEGER);
+		return StartState.instance().transition(context);
 	}
 }

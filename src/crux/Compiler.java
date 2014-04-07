@@ -31,6 +31,7 @@ public class Compiler
 						case IDENTIFIER:
 						case FLOAT:
 						case INTEGER:
+						case ERROR:
 							System.out.printf(
 								"%s(%s)(lineNum:%s, charPos:%s)\n",
 								token.getKind(),

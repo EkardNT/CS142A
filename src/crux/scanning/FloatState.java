@@ -10,24 +10,21 @@ public class FloatState implements State
 	@Override
 	public State transition(TransitionContext context)
 	{
-		if(context.isEof() || context.isWhitespace())
-		{
-			context.emit(Kind.FLOAT);
-			return StartState.instance();
-		}
 		if(context.isDigit())
 		{
-			context.accumulate();
+			context.pushChar();
 			return this;
 		}
-		if(context.isSymbol())
+		// One of the test cases specifically calls out a second '.' as an error,
+		// even though it could be interpreted as the start of a new float.
+		if(context.value() == '.')
 		{
 			context.emit(Kind.FLOAT);
-			context.accumulate();
-			return SymbolState.instance();
+			context.pushChar();
+			context.emit(Kind.ERROR);
+			return StartState.instance();
 		}
-		context.accumulate();
-		context.emit(Kind.ERROR);
-		return StartState.instance();
-	}		
+		context.emit(Kind.FLOAT);
+		return StartState.instance().transition(context);
+	}
 }
