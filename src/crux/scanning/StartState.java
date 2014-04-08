@@ -20,11 +20,6 @@ public class StartState implements State
 			context.pushChar();
 			return NumberState.instance();
 		}
-		if(context.value() == '.')
-		{
-			context.pushChar();
-			return FloatState.instance();
-		}
 		if(context.isWhitespace())
 		{
 			return this;

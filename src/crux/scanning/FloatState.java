@@ -15,15 +15,6 @@ public class FloatState implements State
 			context.pushChar();
 			return this;
 		}
-		// One of the test cases specifically calls out a second '.' as an error,
-		// even though it could be interpreted as the start of a new float.
-		if(context.value() == '.')
-		{
-			context.emit(Kind.FLOAT);
-			context.pushChar();
-			context.emit(Kind.ERROR);
-			return StartState.instance();
-		}
 		context.emit(Kind.FLOAT);
 		return StartState.instance().transition(context);
 	}
