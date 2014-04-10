@@ -12,13 +12,30 @@ public class Compiler
 {
 	public static void main(String[] args)
 	{
+		if(args.length == 0)
+		{
+			System.out.println("Specify at least one input file to read.");
+			return;
+		}
+		
 		Scanner scanner = new Scanner();
 		
 		for(String path : args)
 		{
+			BufferedReader reader = null;
+			
 			try 
 			{
-				BufferedReader reader = Files.newBufferedReader(Paths.get(path), Charset.forName("UTF-8"));
+				reader = Files.newBufferedReader(Paths.get(path), Charset.forName("UTF-8"));
+			}
+			catch(IOException e)
+			{
+				System.out.printf("Unable to open file \"%s\".\n", path);
+				continue;
+			}
+			
+			try
+			{
 				scanner.beginReadFrom(reader);
 				Token token = null;
 				do
@@ -51,6 +68,7 @@ public class Compiler
 			}
 			catch (IOException e) 
 			{
+				System.out.printf("Error while scanning file \"%s\", details follow.", path);
 				e.printStackTrace();
 			}
 		}

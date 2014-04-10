@@ -26,10 +26,9 @@ public class SymbolState implements State
 			context.emit(context.getSymbols().containsKey(potentialSymbol)
 				? context.getSymbols().get(potentialSymbol)
 				: Kind.ERROR);
-			// Finally, we stay in this state because we know the char
-			// value is the start of a new symbol.
-			context.pushChar();
-			return this;
+			// Finally, we defer handling of this potential new symbol
+			// to the start state, because it might be a comment.
+			return StartState.instance().transition(context);
 		}
 		// If the value is not a symbol, then we transition
 		// away from this state, emitting the correct symbol
