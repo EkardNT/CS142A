@@ -36,6 +36,7 @@ public class Compiler
 			
 			try
 			{
+				System.out.printf("Scanning file \"%s\":\n", path);
 				scanner.beginReadFrom(reader);
 				Token token = null;
 				do
@@ -65,6 +66,7 @@ public class Compiler
 				}
 				while(token.getKind() != Kind.EOF);
 				reader.close();
+				System.out.println();
 			}
 			catch (IOException e) 
 			{

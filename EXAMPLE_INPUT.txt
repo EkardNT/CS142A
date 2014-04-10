@@ -1,0 +1,18 @@
+// An example Crux program.
+// Scanner written by Drake Tetreault
+// UCI ID # 35571095
+var myFloat : float;
+var myInt : int;
+var myBool : bool;//Comment without preceeding space.
+
+let myFloat = 3.15;
+let myInt = 1991;
+let myBool = true;
+
+while myBool = myFloat < 1000.0 {
+	myFloat = myFloat + 1.0;
+}
+
+::printInt(myInt);
+myBool = ::readInt() == 1;
+// Comment at end of file.
