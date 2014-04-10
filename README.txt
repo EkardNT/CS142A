@@ -12,3 +12,6 @@ INPUT FILES:
 I have provided a sample Crux program in the EXAMPLE_INPUT.txt file. To scan your own input file (it has to be a UTF-8 encoded text file, but does not need to have the ".txt" extension), substitute EXAMPLE_INPUT.txt with your file's name. My program also can scan multiple files at once, by providing more than one file name. For example, the following command line expression will output the results of scanning files "Input1.txt" and "Input2.txt":
 
 java -cp ../ crux.Compiler Input1.txt Input2.txt
+
+PROJECT HISTORY:
+In addition to the full and complete source code contained within the submitted zip file, I have also established a Git repository for my projects for CS 142A which you may access at https://github.com/EkardNT/CS142A. The main branch commit tagged "Tweaked SubmittedProject1" contains the source code, readme, and example input file submitted to EEE.
