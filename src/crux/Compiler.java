@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import crux.Token.Kind;
+import crux.parsing.LL1Reader;
 
 public class Compiler 
 {
@@ -19,6 +20,7 @@ public class Compiler
 		}
 		
 		Scanner scanner = new Scanner();
+		Parser parser = new Parser();
 		
 		for(String path : args)
 		{
@@ -36,41 +38,15 @@ public class Compiler
 			
 			try
 			{
-				System.out.printf("Scanning file \"%s\":\n", path);
+				System.out.printf("Compiling file \"%s\":\n", path);
 				scanner.beginReadFrom(reader);
-				Token token = null;
-				do
-				{
-					token = scanner.next();
-					switch(token.getKind())
-					{
-						case IDENTIFIER:
-						case FLOAT:
-						case INTEGER:
-						case ERROR:
-							System.out.printf(
-								"%s(%s)(lineNum:%s, charPos:%s)\n",
-								token.getKind(),
-								token.getLexeme(),
-								token.getLineNumber(),
-								token.getCharPos());
-							break;
-						default:
-							System.out.printf(
-								"%s(lineNum:%s, charPos:%s)\n",
-								token.getKind(),
-								token.getLineNumber(),
-								token.getCharPos());
-							break;
-					}
-				}
-				while(token.getKind() != Kind.EOF);
+				parser.parse(new LL1Reader(scanner));
 				reader.close();
 				System.out.println();
 			}
 			catch (IOException e) 
 			{
-				System.out.printf("Error while scanning file \"%s\", details follow.", path);
+				System.out.printf("IO error while compiling file \"%s\", details follow.", path);
 				e.printStackTrace();
 			}
 		}
