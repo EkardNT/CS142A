@@ -11,6 +11,9 @@ import crux.parsing.LL1Reader;
 
 public class Compiler 
 {
+	public static final String uciNetID = "dtetreau";
+	public static final String studentID = "35571095";
+	
 	public static void main(String[] args)
 	{
 		if(args.length == 0)
