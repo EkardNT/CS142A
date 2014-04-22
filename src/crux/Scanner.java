@@ -1,6 +1,7 @@
 package crux;
 
 import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,9 +29,9 @@ public class Scanner
 	private TransitionContext context;
 	private Queue<Token> emittedTokens;
 	
-	public void beginReadFrom(BufferedReader source)
+	public Scanner(FileReader source)
 	{
-		input = source;
+		input = new BufferedReader(source);
 		accumulator = new StringBuilder();
 		context = new ScannerTransitionContext();
 		currentState = StartState.instance();

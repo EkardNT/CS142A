@@ -26,9 +26,7 @@ public class AutoTesterMike {
 
 		Scanner s = null;
 		try {
-			BufferedReader reader = new BufferedReader(new FileReader(inputFilename));
-			s = new Scanner();
-			s.beginReadFrom(reader);
+			s = new Scanner(new FileReader(inputFilename));
 		} catch (IOException e) {
 			e.printStackTrace();
 			return NOT_ACCESSABLE;

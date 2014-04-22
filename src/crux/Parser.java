@@ -1,359 +1,485 @@
 package crux;
 
 import java.util.ArrayList;
+import java.util.Stack;
 
+import crux.parsing.FirstSetUnsatisfiedException;
 import crux.parsing.LL1Reader;
+import crux.parsing.ParseNode;
+import crux.parsing.RequiredTokenException;
 
 public class Parser 
-{
-	private static class ParserState
+{	
+	private final LL1Reader reader;
+	private final ArrayList<String> errors;
+	private ParseNode root, current;	
+	
+	public Parser(Scanner scanner)
 	{
-		private final LL1Reader reader;
-		private final ArrayList<String> errors;
-		
-		public ParserState(LL1Reader reader)
-		{
-			this.reader = reader;
-			this.errors = new ArrayList<String>();
-		}
-		
-		public boolean accept(Token.Kind tokenKind)
-		{
-			if(reader.kind().equals(tokenKind))
-			{
-				reader.advance();
-				return true;
-			}
-			return false;
-		}
-		
-		public boolean require(Token.Kind tokenKind)
-		{
-			if(reader.kind().equals(tokenKind))
-			{
-				reader.advance();
-				return true;
-			}
-			return error(String.format("Required Token.Kind \"%s\" not found, \"%s\" found instead.", tokenKind, reader.kind()));
-		}
-		
-		public Token.Kind tokenKind() { return reader.kind(); }
-		
-		public boolean error(String errorMessage)
-		{
-			errors.add(errorMessage);
-			return false;
-		}
-		
-		public Iterable<String> errors() { return errors; }
+		this.reader = new LL1Reader(scanner);
+		this.errors = new ArrayList<String>();
+		root = current = null;
 	}
 	
-	public void parse(LL1Reader reader)
+	public void error(String errorMessage)
 	{
-		ParserState state = new ParserState(reader);
-		if(program(state))
+		errors.add(errorMessage);
+	}
+	
+	public boolean hasError()
+	{
+		return errors.size() > 0;
+	}
+	
+	public String errorReport()
+	{
+		StringBuilder b = new StringBuilder();
+		for(String error : errors)
+			b.append(String.format("%s\n", error));
+		return b.toString();
+	}
+	
+	public String parseTreeReport()
+	{
+		StringBuilder b = new StringBuilder();
+		buildReport(root, 0, b);
+		return b.toString();
+	}
+	
+	private void buildReport(ParseNode current, int indent, StringBuilder b)
+	{
+		while(current != null)
 		{
-			System.out.println("Program recognized.");
+			if(current.Terminal == null)
+			{
+				for(int i = 0; i < indent; i++)
+					b.append("  "); // 2 spaces
+				b.append(current.ProductionRule.toString());
+				b.append('\n');
+				// Children
+				buildReport(current.FirstChild, indent + 1, b);
+			}
+			// Siblings
+			current = current.Sibling;
+		}
+	}
+	
+	public void parse()
+	{
+		try
+		{
+			program();
+		}
+		catch(RequiredTokenException e)
+		{
+			error(String.format("SyntaxError(%d,%d)[Expected %s but got %s.]", e.ActualToken.getLineNumber(), e.ActualToken.getCharPos(), e.ExpectedKind, e.ActualToken.getKind()));
+		}
+		catch(FirstSetUnsatisfiedException e)
+		{
+			error(String.format("First set unsatisfied for non-terminal of kind \"%s\".\n", e.Unsatisfied.toString()));
+		}
+	}
+	
+	private void program() throws FirstSetUnsatisfiedException, RequiredTokenException
+	{
+		enterRule(NonTerminal.PROGRAM);
+		declaration_list();
+		exitRule();
+	}
+	
+	private void statement_block() throws RequiredTokenException, FirstSetUnsatisfiedException
+	{
+		enterRule(NonTerminal.STATEMENT_BLOCK);
+		require(Token.Kind.OPEN_BRACE);
+		statement_list();
+		require(Token.Kind.CLOSE_BRACE);
+		exitRule();
+	}
+	
+	private void statement_list() throws FirstSetUnsatisfiedException, RequiredTokenException
+	{
+		enterRule(NonTerminal.STATEMENT_LIST);
+		while(firstSetSatisfied(NonTerminal.STATEMENT))
+			statement();
+		exitRule();
+	}
+	
+	private void statement() throws FirstSetUnsatisfiedException, RequiredTokenException
+	{
+		enterRule(NonTerminal.STATEMENT);
+		if(firstSetSatisfied(NonTerminal.VARIABLE_DECLARATION))
+			variable_declaration();
+		else if(firstSetSatisfied(NonTerminal.CALL_STATEMENT))
+			call_statement();
+		else if(firstSetSatisfied(NonTerminal.ASSIGNMENT_STATEMENT))
+			assignment_statement();
+		else if(firstSetSatisfied(NonTerminal.IF_STATEMENT))
+			if_statement();
+		else if(firstSetSatisfied(NonTerminal.WHILE_STATEMENT))
+			while_statement();
+		else if(firstSetSatisfied(NonTerminal.RETURN_STATEMENT))
+			return_statement();
+		else
+			throw new FirstSetUnsatisfiedException(NonTerminal.STATEMENT);
+		exitRule();
+	}
+	
+	private void return_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	{
+		enterRule(NonTerminal.RETURN_STATEMENT);
+		require(Token.Kind.RETURN);
+		expression0();
+		require(Token.Kind.SEMICOLON);
+		exitRule();
+	}
+	
+	private void while_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	{
+		enterRule(NonTerminal.WHILE_STATEMENT);
+		require(Token.Kind.WHILE);
+		expression0();
+		statement_block();
+		exitRule();
+	}
+	
+	private void if_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	{
+		enterRule(NonTerminal.IF_STATEMENT);
+		require(Token.Kind.IF);
+		expression0();
+		statement_block();
+		if(accept(Token.Kind.ELSE))
+			statement_block();
+		exitRule(); 
+	}
+	
+	private void call_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	{
+		enterRule(NonTerminal.CALL_STATEMENT);
+		call_expression();
+		require(Token.Kind.SEMICOLON);
+		exitRule();
+	}
+	
+	private void assignment_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	{
+		enterRule(NonTerminal.ASSIGNMENT_STATEMENT);
+		require(Token.Kind.LET);
+		designator();
+		require(Token.Kind.ASSIGN);
+		expression0();
+		require(Token.Kind.SEMICOLON);
+		exitRule();
+	}
+	
+	private void declaration_list() throws FirstSetUnsatisfiedException, RequiredTokenException
+	{
+		enterRule(NonTerminal.DECLARATION_LIST);
+		while(firstSetSatisfied(NonTerminal.DECLARATION))
+			declaration();
+		exitRule();
+	}
+	
+	private void declaration() throws FirstSetUnsatisfiedException, RequiredTokenException
+	{
+		enterRule(NonTerminal.DECLARATION);
+		if(firstSetSatisfied(NonTerminal.VARIABLE_DECLARATION))
+			variable_declaration();
+		else if(firstSetSatisfied(NonTerminal.ARRAY_DECLARATION))
+			array_declaration();
+		else if(firstSetSatisfied(NonTerminal.FUNCTION_DEFINITION))
+			function_definition();
+		else
+			throw new FirstSetUnsatisfiedException(NonTerminal.DECLARATION);
+		exitRule();
+	}
+	
+	private void function_definition() throws RequiredTokenException, FirstSetUnsatisfiedException
+	{
+		enterRule(NonTerminal.FUNCTION_DEFINITION);
+		require(Token.Kind.FUNC);
+		emitTerminal(require(Token.Kind.IDENTIFIER));
+		require(Token.Kind.OPEN_PAREN);
+		parameter_list();
+		require(Token.Kind.CLOSE_PAREN);
+		require(Token.Kind.COLON);
+		type();
+		statement_block();
+		exitRule();
+	}
+	
+	private void array_declaration() throws RequiredTokenException
+	{
+		enterRule(NonTerminal.ARRAY_DECLARATION);
+		require(Token.Kind.ARRAY);
+		emitTerminal(require(Token.Kind.IDENTIFIER));
+		require(Token.Kind.COLON);
+		type();
+		require(Token.Kind.OPEN_BRACKET);
+		emitTerminal(require(Token.Kind.INTEGER));
+		require(Token.Kind.CLOSE_BRACKET);
+		while(accept(Token.Kind.OPEN_BRACKET))
+		{
+			emitTerminal(require(Token.Kind.INTEGER));
+			require(Token.Kind.CLOSE_BRACKET);
+		}
+		require(Token.Kind.SEMICOLON);
+		exitRule();
+	}
+	
+	private void variable_declaration() throws RequiredTokenException
+	{
+		enterRule(NonTerminal.VARIABLE_DECLARATION);
+		require(Token.Kind.VAR);
+		emitTerminal(require(Token.Kind.IDENTIFIER));
+		require(Token.Kind.COLON);
+		type();
+		require(Token.Kind.SEMICOLON);
+		exitRule();
+	}
+	
+	private void parameter_list() throws RequiredTokenException
+	{
+		enterRule(NonTerminal.PARAMETER_LIST);
+		if(firstSetSatisfied(NonTerminal.PARAMETER))
+		{
+			parameter();
+			while(accept(Token.Kind.COMMA))
+				parameter();
+		}
+		exitRule();
+	}
+	
+	private void parameter() throws RequiredTokenException
+	{
+		enterRule(NonTerminal.PARAMETER);
+		emitTerminal(require(Token.Kind.IDENTIFIER));
+		require(Token.Kind.COLON);
+		type();
+		exitRule();
+	}
+	
+	private void expression_list() throws FirstSetUnsatisfiedException, RequiredTokenException
+	{
+		enterRule(NonTerminal.EXPRESSION_LIST);
+		if(firstSetSatisfied(NonTerminal.EXPRESSION0))
+		{
+			expression0();
+			while(accept(Token.Kind.COMMA))
+				expression0();
+		}
+		exitRule();
+	}
+	
+	private void call_expression() throws RequiredTokenException, FirstSetUnsatisfiedException
+	{
+		enterRule(NonTerminal.CALL_EXPRESSION);
+		require(Token.Kind.CALL);
+		emitTerminal(require(Token.Kind.IDENTIFIER));
+		require(Token.Kind.OPEN_PAREN);
+		expression_list();
+		require(Token.Kind.CLOSE_PAREN);
+		exitRule();
+	}
+	
+	private void expression3() throws FirstSetUnsatisfiedException, RequiredTokenException
+	{
+		enterRule(NonTerminal.EXPRESSION3);
+		if(accept(Token.Kind.NOT))
+			expression3();
+		else if(accept(Token.Kind.OPEN_PAREN))
+		{
+			expression0();
+			require(Token.Kind.CLOSE_PAREN);
+		}
+		else if(firstSetSatisfied(NonTerminal.DESIGNATOR))
+			designator();
+		else if(firstSetSatisfied(NonTerminal.CALL_EXPRESSION))
+			call_expression();
+		else if(firstSetSatisfied(NonTerminal.LITERAL))
+			literal();
+		else
+			throw new FirstSetUnsatisfiedException(NonTerminal.EXPRESSION3);
+		exitRule();
+	}
+	
+	private void expression2() throws FirstSetUnsatisfiedException, RequiredTokenException
+	{
+		enterRule(NonTerminal.EXPRESSION2);
+		expression3();
+		while(firstSetSatisfied(NonTerminal.OP2))
+		{
+			op2();
+			expression3();
+		}
+		exitRule();
+	}
+	
+	private void expression1() throws FirstSetUnsatisfiedException, RequiredTokenException
+	{
+		enterRule(NonTerminal.EXPRESSION1);
+		expression2();
+		while(firstSetSatisfied(NonTerminal.OP1))
+		{
+			op1();
+			expression2();
+		}
+		exitRule();
+	}
+	
+	private void expression0() throws FirstSetUnsatisfiedException, RequiredTokenException
+	{
+		enterRule(NonTerminal.EXPRESSION0);
+		expression1();
+		if(firstSetSatisfied(NonTerminal.OP0))
+		{
+			op0();
+			expression1();
+		}
+		exitRule();
+	}
+	
+	private void op2() throws FirstSetUnsatisfiedException
+	{
+		enterRule(NonTerminal.OP2);
+		if(firstSetSatisfied(NonTerminal.OP2))
+		{
+			emitTerminal(reader.token());
+			reader.advance();
 		}
 		else
+			throw new FirstSetUnsatisfiedException(NonTerminal.OP2);
+		exitRule();
+	}
+	
+	private void op1() throws FirstSetUnsatisfiedException
+	{
+		enterRule(NonTerminal.OP1);
+		if(firstSetSatisfied(NonTerminal.OP1))
 		{
-			System.out.println("Program not recognized.");
-			for(String error : state.errors())
-				System.out.printf("\t%s\n", error);
+			emitTerminal(reader.token());
+			reader.advance();
+		}
+		else
+			throw new FirstSetUnsatisfiedException(NonTerminal.OP1);
+		exitRule();
+	}
+	
+	private void op0() throws FirstSetUnsatisfiedException
+	{
+		enterRule(NonTerminal.OP0);
+		if(firstSetSatisfied(NonTerminal.OP0))
+		{
+			emitTerminal(reader.token());
+			reader.advance();
+		}
+		else
+			throw new FirstSetUnsatisfiedException(NonTerminal.OP0);
+		exitRule();
+	}
+	
+	private void type() throws RequiredTokenException
+	{
+		enterRule(NonTerminal.TYPE);
+		emitTerminal(require(Token.Kind.IDENTIFIER));
+		exitRule();
+	}
+	
+	private void designator() throws RequiredTokenException, FirstSetUnsatisfiedException
+	{
+		enterRule(NonTerminal.DESIGNATOR);
+		emitTerminal(require(Token.Kind.IDENTIFIER));
+		while(accept(Token.Kind.OPEN_BRACKET))
+		{
+			expression0();
+			require(Token.Kind.CLOSE_BRACKET);
+		}
+		exitRule();
+	}
+	
+	private void literal() throws FirstSetUnsatisfiedException
+	{
+		enterRule(NonTerminal.LITERAL);
+		if(firstSetSatisfied(NonTerminal.LITERAL))
+		{
+			emitTerminal(reader.token());
+			reader.advance();
+		}
+		else
+			throw new FirstSetUnsatisfiedException(NonTerminal.LITERAL);
+		exitRule();
+	}
+	
+	private void emitTerminal(Token terminal)
+	{
+		if(root == null)
+		{
+			root = current = new ParseNode(null, terminal);
+			return;
+		}
+		ParseNode newNode = new ParseNode(null, terminal);
+		newNode.Parent = current;
+		if(current.FirstChild == null)
+			current.FirstChild = newNode;
+		else
+		{
+			ParseNode lastChild = current.FirstChild;
+			while(lastChild.Sibling != null)
+				lastChild = lastChild.Sibling;
+			lastChild.Sibling = newNode;
 		}
 	}
-	
-	private boolean program(ParserState state)
+			
+	private void enterRule(NonTerminal productionRule)
 	{
-		System.out.println("program");
-		declaration_list(state);
-		return state.accept(Token.Kind.EOF);
-	}
-	
-	private boolean statement_block(ParserState state)
-	{
-		System.out.println("statement_block");
-		return state.require(Token.Kind.OPEN_BRACE)
-			&& statement_list(state)
-			&& state.require(Token.Kind.CLOSE_BRACE);
-	}
-	
-	private boolean statement_list(ParserState state)
-	{
-		System.out.println("statement_list");
-		while(statement(state)) {}
-		return true;
-	}
-	
-	private boolean statement(ParserState state)
-	{
-		System.out.println("statement");
-		switch(state.tokenKind())
+		if(root == null)
 		{
-			case VAR: return variable_declaration(state);
-			case CALL: return call_statement(state);
-			case LET: return assignment_statement(state);
-			case IF: return if_statement(state);
-			case WHILE: return while_statement(state);
-			case RETURN: return return_statement(state);
-			default: return state.error(String.format("Unexpected token \"%s\" encountered in statement.", state.tokenKind()));
+			root = current = new ParseNode(productionRule, null);
+			return;
 		}
-	}
-	
-	private boolean return_statement(ParserState state)
-	{
-		System.out.println("return_statement");
-		return state.require(Token.Kind.RETURN)
-			&& expression0(state)
-			&& state.require(Token.Kind.SEMICOLON);
-	}
-	
-	private boolean while_statement(ParserState state)
-	{
-		System.out.println("while_statement");
-		return state.require(Token.Kind.WHILE)
-			&& expression0(state)
-			&& statement_block(state);
-	}
-	
-	private boolean if_statement(ParserState state)
-	{
-		System.out.println("if_statement");
-		return state.require(Token.Kind.IF)
-			&& expression0(state)
-			&& statement_block(state)
-			&& (state.accept(Token.Kind.ELSE)? statement_block(state) : true); 
-	}
-	
-	private boolean call_statement(ParserState state)
-	{
-		System.out.println("call_statement");
-		return call_expression(state) 
-			&& state.require(Token.Kind.SEMICOLON);
-	}
-	
-	private boolean assignment_statement(ParserState state)
-	{
-		System.out.println("assignment_statement");
-		return state.require(Token.Kind.LET)
-			&& designator(state)
-			&& state.require(Token.Kind.ASSIGN)
-			&& expression0(state)
-			&& state.require(Token.Kind.SEMICOLON);
-	}
-	
-	private boolean declaration_list(ParserState state)
-	{
-		System.out.println("declaration_list");
-		while(declaration(state)) {}
-		return true;
-	}
-	
-	private boolean declaration(ParserState state)
-	{
-		System.out.println("declaration");
-		switch(state.tokenKind())
+		ParseNode newNode = new ParseNode(productionRule, null);
+		newNode.Parent = current;
+		if(current.FirstChild == null)
+			current.FirstChild = newNode;
+		else
 		{
-			case VAR: return variable_declaration(state);
-			case ARRAY: return array_declaration(state);
-			case FUNC: return function_definition(state);
-			default: return state.error(String.format("Unexpected token \"%s\" encountered in declaration.", state.tokenKind()));
+			ParseNode lastChild = current.FirstChild;
+			while(lastChild.Sibling != null)
+				lastChild = lastChild.Sibling;
+			lastChild.Sibling = newNode;
 		}
+		current = newNode;
 	}
 	
-	private boolean function_definition(ParserState state)
+	private void exitRule()
 	{
-		System.out.println("function_definition");
-		return state.require(Token.Kind.FUNC)
-			&& state.require(Token.Kind.IDENTIFIER)
-			&& state.require(Token.Kind.OPEN_PAREN)
-			&& parameter_list(state)
-			&& state.require(Token.Kind.CLOSE_PAREN)
-			&& state.require(Token.Kind.COLON)
-			&& type(state)
-			&& statement_block(state);
+		current = current.Parent;
+	}
+		
+	private boolean firstSetSatisfied(NonTerminal nonTerminal)
+	{
+		return nonTerminal.FirstSet.contains(reader.kind());
 	}
 	
-	private boolean array_declaration(ParserState state)
+	private Token require(Token.Kind kind) throws RequiredTokenException
 	{
-		System.out.println("array_declaration");
-		if(!state.require(Token.Kind.ARRAY)
-			|| !state.require(Token.Kind.IDENTIFIER)
-			|| !state.require(Token.Kind.COLON)
-			|| !type(state)
-			|| !state.require(Token.Kind.OPEN_BRACKET)
-			|| !state.require(Token.Kind.INTEGER)
-			|| !state.require(Token.Kind.CLOSE_BRACKET))
-			return false;
-		while(state.accept(Token.Kind.OPEN_BRACKET))
+		if(reader.kind().equals(kind))
 		{
-			if(!state.require(Token.Kind.INTEGER)
-				|| !state.require(Token.Kind.CLOSE_BRACKET))
-				return false;
+			Token token = reader.token();
+			reader.advance();
+			return token;
 		}
-		return state.require(Token.Kind.SEMICOLON);
+		else
+			throw new RequiredTokenException(kind, reader.token());
 	}
 	
-	private boolean variable_declaration(ParserState state)
+	private boolean accept(Token.Kind kind)
 	{
-		System.out.println("variable_declaration");
-		return state.require(Token.Kind.VAR)
-			&& state.require(Token.Kind.IDENTIFIER)
-			&& state.require(Token.Kind.COLON)
-			&& type(state)
-			&& state.require(Token.Kind.SEMICOLON);
-	}
-	
-	private boolean parameter_list(ParserState state)
-	{
-		System.out.println("parameter_list");
-		if(parameter(state))
+		if(reader.kind().equals(kind))
 		{
-			while(state.accept(Token.Kind.COMMA))
-			{
-				if(!parameter(state))
-					return false;
-			}
-		}
-		return true;
-	}
-	
-	private boolean parameter(ParserState state)
-	{
-		System.out.println("parameter");
-		return state.require(Token.Kind.IDENTIFIER)
-			&& state.require(Token.Kind.COLON)
-			&& type(state);
-	}
-	
-	private boolean expression_list(ParserState state)
-	{
-		System.out.println("expression_list");
-		if(expression0(state))
-		{
-			while(state.accept(Token.Kind.COMMA))
-			{
-				if(!expression0(state))
-					return false;
-			}
+			reader.advance();
+			return true;
 		}
 		return false;
-	}
-	
-	private boolean call_expression(ParserState state)
-	{
-		System.out.println("call_expression");
-		return state.require(Token.Kind.CALL)
-			&& state.require(Token.Kind.IDENTIFIER)
-			&& state.require(Token.Kind.OPEN_PAREN)
-			&& expression_list(state)
-			&& state.require(Token.Kind.CLOSE_PAREN);
-	}
-	
-	private boolean expression3(ParserState state)
-	{
-		System.out.println("expression3");
-		switch(state.tokenKind())
-		{
-			case NOT: return state.require(Token.Kind.NOT) && expression3(state);
-			case OPEN_PAREN: return state.require(Token.Kind.OPEN_PAREN) && expression0(state) && state.require(Token.Kind.CLOSE_PAREN);
-			case IDENTIFIER: return designator(state);
-			case CALL: return call_expression(state);
-			case INTEGER:
-			case FLOAT:
-			case TRUE:
-			case FALSE:
-				return literal(state);
-			default: return state.error(String.format("Unexpected token \"%s\" encountered in expression3.", state.tokenKind()));
-		}
-	}
-	
-	private boolean expression2(ParserState state)
-	{
-		System.out.println("expression2");
-		if(!expression3(state))
-			return false;
-		while(op2(state))
-			if(!expression3(state))
-				return false;
-		return true;
-	}
-	
-	private boolean expression1(ParserState state)
-	{
-		System.out.println("expression1");
-		if(!expression2(state))
-			return false;
-		while(op1(state))
-			if(!expression2(state))
-				return false;
-		return true;
-	}
-	
-	private boolean expression0(ParserState state)
-	{
-		System.out.println("expression0");
-		if(!expression1(state))
-			return false;
-		if(op0(state) && !expression1(state))
-			return false;
-		return true;
-	}
-	
-	private boolean op2(ParserState state)
-	{
-		System.out.println("op2");
-		return state.accept(Token.Kind.MUL)
-			|| state.accept(Token.Kind.DIV)
-			|| state.accept(Token.Kind.AND)
-			|| state.error(String.format("Unexpected token \"%s\" encountered in op2.", state.tokenKind()));
-	}
-	
-	private boolean op1(ParserState state)
-	{
-		System.out.println("op1");
-		return state.accept(Token.Kind.ADD)
-			|| state.accept(Token.Kind.SUB)
-			|| state.accept(Token.Kind.OR)
-			|| state.error(String.format("Unexpected token \"%s\" encountered in op1.", state.tokenKind()));
-	}
-	
-	private boolean op0(ParserState state)
-	{
-		System.out.println("op0");
-		return state.accept(Token.Kind.GREATER_EQUAL)
-			|| state.accept(Token.Kind.LESSER_EQUAL)
-			|| state.accept(Token.Kind.NOT_EQUAL)
-			|| state.accept(Token.Kind.EQUAL)
-			|| state.accept(Token.Kind.GREATER_THAN)
-			|| state.accept(Token.Kind.LESS_THAN)
-			|| state.error(String.format("Unexpected token \"%s\" encountered in op0.", state.tokenKind()));
-	}
-	
-	private boolean type(ParserState state)
-	{
-		System.out.println("type");
-		return state.require(Token.Kind.IDENTIFIER);
-	}
-	
-	private boolean designator(ParserState state)
-	{
-		System.out.println("designator");
-		if(!state.require(Token.Kind.IDENTIFIER))
-			return false;
-		while(state.accept(Token.Kind.OPEN_BRACKET))
-			if(!expression0(state) || !state.require(Token.Kind.CLOSE_BRACKET))
-				return false;
-		return true;
-	}
-	
-	private boolean literal(ParserState state)
-	{
-		System.out.println("literal");
-		return state.accept(Token.Kind.INTEGER)
-			|| state.accept(Token.Kind.FLOAT)
-			|| state.accept(Token.Kind.TRUE)
-			|| state.accept(Token.Kind.FALSE)
-			|| state.error(String.format("Unexpected token \"%s\" encountered in literal.", state.tokenKind()));
 	}
 }
