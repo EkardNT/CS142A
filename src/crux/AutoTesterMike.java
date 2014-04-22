@@ -40,6 +40,7 @@ public class AutoTesterMike {
 			Parser p = new Parser(s);
 			p.parse();
 			if (p.hasError()) {
+				System.out.println(p.errorReport());
 				outputStream.println("Error parsing file.");
 				outputStream.println(p.errorReport());
 				outputStream.close();

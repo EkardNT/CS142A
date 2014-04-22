@@ -73,6 +73,7 @@ public class Parser
 		catch(RequiredTokenException e)
 		{
 			error(String.format("SyntaxError(%d,%d)[Expected %s but got %s.]", e.ActualToken.getLineNumber(), e.ActualToken.getCharPos(), e.ExpectedKind, e.ActualToken.getKind()));
+			error(String.format("SyntaxError(%d,%d)[Could not complete parsing.]", e.ActualToken.getLineNumber(), e.ActualToken.getCharPos()));
 		}
 		catch(FirstSetUnsatisfiedException e)
 		{
@@ -177,6 +178,7 @@ public class Parser
 		enterRule(NonTerminal.DECLARATION_LIST);
 		while(firstSetSatisfied(NonTerminal.DECLARATION))
 			declaration();
+		require(Token.Kind.EOF);
 		exitRule();
 	}
 	
