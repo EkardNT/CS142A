@@ -1,5 +1,6 @@
 package crux.symbols;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -9,11 +10,13 @@ public class SymbolTable
 {
 	private final SymbolTable parent;
 	private final Map<String, Symbol> definedSymbols;
+	private final ArrayList<Symbol> declarationOrder;
 	
 	public SymbolTable(SymbolTable parent)
 	{
 		this.parent = parent;
 		definedSymbols = new HashMap<String, Symbol>();
+		declarationOrder = new ArrayList<Symbol>();
 	}
 	
 	public boolean containsSymbol(String identifier, boolean checkParentScopes)
@@ -24,7 +27,9 @@ public class SymbolTable
 	
 	public void define(String identifier)
 	{
-		definedSymbols.put(identifier, new Symbol(identifier));
+		Symbol symbol = new Symbol(identifier);
+		definedSymbols.put(identifier, symbol);
+		declarationOrder.add(symbol);
 	}
 	
 	public Symbol lookup(String identifier)
@@ -32,5 +37,13 @@ public class SymbolTable
 		return definedSymbols.containsKey(identifier)
 			? definedSymbols.get(identifier)
 			: (parent != null ? parent.lookup(identifier) : null);
+	}
+	
+	public void getSymbolsInOrderOfDeclaration(ArrayList<Symbol> destination)
+	{
+		if(parent != null)
+			parent.getSymbolsInOrderOfDeclaration(destination);
+		for(Symbol s : declarationOrder)
+			destination.add(s);
 	}
 }

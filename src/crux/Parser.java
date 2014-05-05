@@ -53,6 +53,11 @@ public class Parser
 		StringBuilder b = new StringBuilder();
 		for(String error : errors)
 			b.append(String.format("%s\n", error));
+		ArrayList<Symbol> symbols = new ArrayList<Symbol>();
+		symbolTables.peek().getSymbolsInOrderOfDeclaration(symbols);
+		for(Symbol s : symbols)
+			b.append(String.format("Symbol(%s)\n", s.getName()));
+		b.append('\n');
 		return b.toString();
 	}
 	
@@ -89,11 +94,11 @@ public class Parser
 		}
 		catch(SymbolRedefinitionException e)
 		{
-			error(String.format("Symbol redefinition error: %s\n", e.RedefiningToken.getLexeme()));
+			error(String.format("DeclareSymbolError(%d,%d)[%s already exists.]", e.RedefiningToken.getLineNumber(), e.RedefiningToken.getCharPos(), e.RedefiningToken.getLexeme()));
 		}
 		catch(SymbolResolveException e)
 		{
-			error(String.format("Symbol resolve error: %s\n", e.UnresolvableToken.getLexeme()));
+			error(String.format("ResolveSymbolError(%d,%d)[Could not find %s.]", e.UnresolvableToken.getLineNumber(), e.UnresolvableToken.getCharPos(), e.UnresolvableToken.getLexeme()));
 		}
 		catch(RequiredTokenException e)
 		{
@@ -102,7 +107,7 @@ public class Parser
 		}
 		catch(FirstSetUnsatisfiedException e)
 		{
-			error(String.format("First set unsatisfied for non-terminal of kind \"%s\".\n", e.Unsatisfied.toString()));
+			error(String.format("First set unsatisfied for non-terminal of kind \"%s\".", e.Unsatisfied.toString()));
 		}
 	}
 	
