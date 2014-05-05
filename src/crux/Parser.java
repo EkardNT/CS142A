@@ -7,18 +7,35 @@ import crux.parsing.FirstSetUnsatisfiedException;
 import crux.parsing.LL1Reader;
 import crux.parsing.ParseNode;
 import crux.parsing.RequiredTokenException;
+import crux.symbols.SymbolRedefinitionException;
+import crux.symbols.SymbolResolveException;
+import crux.symbols.SymbolTable;
 
 public class Parser 
 {	
+	public static String studentName = "Drake Tetreault";
+    public static String studentID = "35571095";
+    public static String uciNetID = "dtetreau";
+	
 	private final LL1Reader reader;
 	private final ArrayList<String> errors;
-	private ParseNode root, current;	
+	private final Stack<SymbolTable> symbolTables;
+	private ParseNode root, current;
 	
 	public Parser(Scanner scanner)
 	{
 		this.reader = new LL1Reader(scanner);
 		this.errors = new ArrayList<String>();
+		this.symbolTables = new Stack<SymbolTable>();
 		root = current = null;
+		SymbolTable rootTable = new SymbolTable(null);
+		rootTable.define("readInt");
+		rootTable.define("readFloat");
+		rootTable.define("printBool");
+		rootTable.define("printInt");
+		rootTable.define("printFloat");
+		rootTable.define("println");
+		symbolTables.push(rootTable);
 	}
 	
 	public void error(String errorMessage)
@@ -70,6 +87,14 @@ public class Parser
 		{
 			program();
 		}
+		catch(SymbolRedefinitionException e)
+		{
+			error(String.format("Symbol redefinition error: %s\n", e.RedefiningToken.getLexeme()));
+		}
+		catch(SymbolResolveException e)
+		{
+			error(String.format("Symbol resolve error: %s\n", e.UnresolvableToken.getLexeme()));
+		}
 		catch(RequiredTokenException e)
 		{
 			error(String.format("SyntaxError(%d,%d)[Expected %s but got %s.]", e.ActualToken.getLineNumber(), e.ActualToken.getCharPos(), e.ExpectedKind, e.ActualToken.getKind()));
@@ -81,23 +106,27 @@ public class Parser
 		}
 	}
 	
-	private void program() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private void program() throws FirstSetUnsatisfiedException, RequiredTokenException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.PROGRAM);
 		declaration_list();
 		exitRule();
 	}
 	
-	private void statement_block() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private void statement_block(boolean suppressNewScope) throws RequiredTokenException, FirstSetUnsatisfiedException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.STATEMENT_BLOCK);
+		if(!suppressNewScope)
+			enterScope();
 		require(Token.Kind.OPEN_BRACE);
 		statement_list();
 		require(Token.Kind.CLOSE_BRACE);
+		if(!suppressNewScope)
+			exitScope();
 		exitRule();
 	}
 	
-	private void statement_list() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private void statement_list() throws FirstSetUnsatisfiedException, RequiredTokenException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.STATEMENT_LIST);
 		while(firstSetSatisfied(NonTerminal.STATEMENT))
@@ -105,7 +134,7 @@ public class Parser
 		exitRule();
 	}
 	
-	private void statement() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private void statement() throws FirstSetUnsatisfiedException, RequiredTokenException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.STATEMENT);
 		if(firstSetSatisfied(NonTerminal.VARIABLE_DECLARATION))
@@ -125,7 +154,7 @@ public class Parser
 		exitRule();
 	}
 	
-	private void return_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private void return_statement() throws RequiredTokenException, FirstSetUnsatisfiedException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.RETURN_STATEMENT);
 		require(Token.Kind.RETURN);
@@ -134,27 +163,27 @@ public class Parser
 		exitRule();
 	}
 	
-	private void while_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private void while_statement() throws RequiredTokenException, FirstSetUnsatisfiedException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.WHILE_STATEMENT);
 		require(Token.Kind.WHILE);
 		expression0();
-		statement_block();
+		statement_block(false);
 		exitRule();
 	}
 	
-	private void if_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private void if_statement() throws RequiredTokenException, FirstSetUnsatisfiedException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.IF_STATEMENT);
 		require(Token.Kind.IF);
 		expression0();
-		statement_block();
+		statement_block(false);
 		if(accept(Token.Kind.ELSE))
-			statement_block();
+			statement_block(false);
 		exitRule(); 
 	}
 	
-	private void call_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private void call_statement() throws RequiredTokenException, FirstSetUnsatisfiedException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.CALL_STATEMENT);
 		call_expression();
@@ -162,7 +191,7 @@ public class Parser
 		exitRule();
 	}
 	
-	private void assignment_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private void assignment_statement() throws RequiredTokenException, FirstSetUnsatisfiedException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.ASSIGNMENT_STATEMENT);
 		require(Token.Kind.LET);
@@ -173,7 +202,7 @@ public class Parser
 		exitRule();
 	}
 	
-	private void declaration_list() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private void declaration_list() throws FirstSetUnsatisfiedException, RequiredTokenException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.DECLARATION_LIST);
 		while(firstSetSatisfied(NonTerminal.DECLARATION))
@@ -182,7 +211,7 @@ public class Parser
 		exitRule();
 	}
 	
-	private void declaration() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private void declaration() throws FirstSetUnsatisfiedException, RequiredTokenException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.DECLARATION);
 		if(firstSetSatisfied(NonTerminal.VARIABLE_DECLARATION))
@@ -196,25 +225,27 @@ public class Parser
 		exitRule();
 	}
 	
-	private void function_definition() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private void function_definition() throws RequiredTokenException, FirstSetUnsatisfiedException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.FUNCTION_DEFINITION);
 		require(Token.Kind.FUNC);
-		emitTerminal(require(Token.Kind.IDENTIFIER));
+		defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
+		enterScope();
 		require(Token.Kind.OPEN_PAREN);
 		parameter_list();
 		require(Token.Kind.CLOSE_PAREN);
 		require(Token.Kind.COLON);
 		type();
-		statement_block();
+		statement_block(true);
+		exitScope();
 		exitRule();
 	}
 	
-	private void array_declaration() throws RequiredTokenException
+	private void array_declaration() throws RequiredTokenException, SymbolRedefinitionException
 	{
 		enterRule(NonTerminal.ARRAY_DECLARATION);
 		require(Token.Kind.ARRAY);
-		emitTerminal(require(Token.Kind.IDENTIFIER));
+		defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
 		require(Token.Kind.COLON);
 		type();
 		require(Token.Kind.OPEN_BRACKET);
@@ -229,18 +260,18 @@ public class Parser
 		exitRule();
 	}
 	
-	private void variable_declaration() throws RequiredTokenException
+	private void variable_declaration() throws RequiredTokenException, SymbolRedefinitionException
 	{
 		enterRule(NonTerminal.VARIABLE_DECLARATION);
 		require(Token.Kind.VAR);
-		emitTerminal(require(Token.Kind.IDENTIFIER));
+		defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
 		require(Token.Kind.COLON);
 		type();
 		require(Token.Kind.SEMICOLON);
 		exitRule();
 	}
 	
-	private void parameter_list() throws RequiredTokenException
+	private void parameter_list() throws RequiredTokenException, SymbolRedefinitionException
 	{
 		enterRule(NonTerminal.PARAMETER_LIST);
 		if(firstSetSatisfied(NonTerminal.PARAMETER))
@@ -252,16 +283,16 @@ public class Parser
 		exitRule();
 	}
 	
-	private void parameter() throws RequiredTokenException
+	private void parameter() throws RequiredTokenException, SymbolRedefinitionException
 	{
 		enterRule(NonTerminal.PARAMETER);
-		emitTerminal(require(Token.Kind.IDENTIFIER));
+		defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
 		require(Token.Kind.COLON);
 		type();
 		exitRule();
 	}
 	
-	private void expression_list() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private void expression_list() throws FirstSetUnsatisfiedException, RequiredTokenException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.EXPRESSION_LIST);
 		if(firstSetSatisfied(NonTerminal.EXPRESSION0))
@@ -273,18 +304,18 @@ public class Parser
 		exitRule();
 	}
 	
-	private void call_expression() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private void call_expression() throws RequiredTokenException, FirstSetUnsatisfiedException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.CALL_EXPRESSION);
 		require(Token.Kind.CALL);
-		emitTerminal(require(Token.Kind.IDENTIFIER));
+		resolveSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
 		require(Token.Kind.OPEN_PAREN);
 		expression_list();
 		require(Token.Kind.CLOSE_PAREN);
 		exitRule();
 	}
 	
-	private void expression3() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private void expression3() throws FirstSetUnsatisfiedException, RequiredTokenException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.EXPRESSION3);
 		if(accept(Token.Kind.NOT))
@@ -305,7 +336,7 @@ public class Parser
 		exitRule();
 	}
 	
-	private void expression2() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private void expression2() throws FirstSetUnsatisfiedException, RequiredTokenException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.EXPRESSION2);
 		expression3();
@@ -317,7 +348,7 @@ public class Parser
 		exitRule();
 	}
 	
-	private void expression1() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private void expression1() throws FirstSetUnsatisfiedException, RequiredTokenException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.EXPRESSION1);
 		expression2();
@@ -329,7 +360,7 @@ public class Parser
 		exitRule();
 	}
 	
-	private void expression0() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private void expression0() throws FirstSetUnsatisfiedException, RequiredTokenException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.EXPRESSION0);
 		expression1();
@@ -341,7 +372,7 @@ public class Parser
 		exitRule();
 	}
 	
-	private void op2() throws FirstSetUnsatisfiedException
+	private void op2() throws FirstSetUnsatisfiedException, SymbolRedefinitionException
 	{
 		enterRule(NonTerminal.OP2);
 		if(firstSetSatisfied(NonTerminal.OP2))
@@ -354,7 +385,7 @@ public class Parser
 		exitRule();
 	}
 	
-	private void op1() throws FirstSetUnsatisfiedException
+	private void op1() throws FirstSetUnsatisfiedException, SymbolRedefinitionException
 	{
 		enterRule(NonTerminal.OP1);
 		if(firstSetSatisfied(NonTerminal.OP1))
@@ -367,7 +398,7 @@ public class Parser
 		exitRule();
 	}
 	
-	private void op0() throws FirstSetUnsatisfiedException
+	private void op0() throws FirstSetUnsatisfiedException, SymbolRedefinitionException
 	{
 		enterRule(NonTerminal.OP0);
 		if(firstSetSatisfied(NonTerminal.OP0))
@@ -380,17 +411,17 @@ public class Parser
 		exitRule();
 	}
 	
-	private void type() throws RequiredTokenException
+	private void type() throws RequiredTokenException, SymbolRedefinitionException
 	{
 		enterRule(NonTerminal.TYPE);
 		emitTerminal(require(Token.Kind.IDENTIFIER));
 		exitRule();
 	}
 	
-	private void designator() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private void designator() throws RequiredTokenException, FirstSetUnsatisfiedException, SymbolRedefinitionException, SymbolResolveException
 	{
 		enterRule(NonTerminal.DESIGNATOR);
-		emitTerminal(require(Token.Kind.IDENTIFIER));
+		resolveSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
 		while(accept(Token.Kind.OPEN_BRACKET))
 		{
 			expression0();
@@ -399,7 +430,7 @@ public class Parser
 		exitRule();
 	}
 	
-	private void literal() throws FirstSetUnsatisfiedException
+	private void literal() throws FirstSetUnsatisfiedException, SymbolRedefinitionException
 	{
 		enterRule(NonTerminal.LITERAL);
 		if(firstSetSatisfied(NonTerminal.LITERAL))
@@ -412,12 +443,12 @@ public class Parser
 		exitRule();
 	}
 	
-	private void emitTerminal(Token terminal)
+	private Token emitTerminal(Token terminal) throws SymbolRedefinitionException
 	{
 		if(root == null)
 		{
 			root = current = new ParseNode(null, terminal);
-			return;
+			return terminal;
 		}
 		ParseNode newNode = new ParseNode(null, terminal);
 		newNode.Parent = current;
@@ -430,6 +461,7 @@ public class Parser
 				lastChild = lastChild.Sibling;
 			lastChild.Sibling = newNode;
 		}
+		return terminal;
 	}
 			
 	private void enterRule(NonTerminal productionRule)
@@ -483,5 +515,29 @@ public class Parser
 			return true;
 		}
 		return false;
+	}
+	
+	private void resolveSymbol(Token token) throws SymbolResolveException
+	{
+		if(!symbolTables.peek().containsSymbol(token.getLexeme(), true))
+			throw new SymbolResolveException(token);
+	}
+	
+	private void defineSymbol(Token token) throws SymbolRedefinitionException
+	{
+		// Define the symbol.
+		if(symbolTables.peek().containsSymbol(token.getLexeme(), false))
+			throw new SymbolRedefinitionException(token);
+		symbolTables.peek().define(token.getLexeme());
+	}
+	
+	private void enterScope()
+	{
+		symbolTables.push(new SymbolTable(symbolTables.peek()));
+	}
+	
+	private void exitScope()
+	{
+		symbolTables.pop();
 	}
 }
