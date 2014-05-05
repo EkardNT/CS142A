@@ -53,12 +53,24 @@ public class Parser
 		StringBuilder b = new StringBuilder();
 		for(String error : errors)
 			b.append(String.format("%s\n", error));
-		ArrayList<Symbol> symbols = new ArrayList<Symbol>();
-		symbolTables.peek().getSymbolsInOrderOfDeclaration(symbols);
-		for(Symbol s : symbols)
-			b.append(String.format("Symbol(%s)\n", s.getName()));
+		buildSymbolHistoryReport(b, symbolTables.peek());
 		b.append('\n');
 		return b.toString();
+	}
+	
+	private int buildSymbolHistoryReport(StringBuilder b, SymbolTable current)
+	{
+		if(current == null)
+			return 0;
+		int indent = buildSymbolHistoryReport(b, current.getParent());
+		for(Symbol s : current.getDeclarationOrder())
+		{
+			// Two spaces per indent.
+			for(int i = 0; i < indent; i++)
+				b.append("  ");
+			b.append(String.format("Symbol(%s)\n", s.getName()));
+		}
+		return indent + 1;
 	}
 	
 	public String parseTreeReport()
