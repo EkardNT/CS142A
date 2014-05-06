@@ -22,8 +22,8 @@ public class Scanner
 	private BufferedReader input;
 	
 	private StringBuilder accumulator;	
-	private int tokenStartLineNumber, tokenStartColumnNumber, nextReadLineNumber, nextReadColumnNumber;
-	private boolean eof;	
+	private int nextReadLineNumber, nextReadColumnNumber, tokenStartLineNumber, tokenStartColumnNumber;
+	private boolean eof, prevValueWasWhitespace;	
 	private char value;
 	private State currentState;
 	private TransitionContext context;
@@ -36,14 +36,13 @@ public class Scanner
 		context = new ScannerTransitionContext();
 		currentState = StartState.instance();
 		emittedTokens = new LinkedList<Token>();
-		tokenStartLineNumber = nextReadLineNumber = 1;
-		tokenStartColumnNumber = nextReadColumnNumber = 1;
+		nextReadLineNumber = nextReadColumnNumber = 1;
 	}
 	
 	public Token next()
 	{
 		if(eof)
-			return new Token(Kind.EOF, "", tokenStartLineNumber, tokenStartColumnNumber);
+			return new Token(Kind.EOF, "", nextReadLineNumber, nextReadColumnNumber - 1);
 		
 		while(emittedTokens.size() == 0)
 		{
@@ -69,14 +68,20 @@ public class Scanner
 	{
 		try
 		{
-			int readVal = input.read();
-			nextReadColumnNumber++;
-			if(readVal >= 0 && (readVal == (int)'\n' || readVal == (int)'\r'))
+			int readVal;
+			while(true)
 			{
-				nextReadLineNumber++;
-				nextReadColumnNumber = 1;
+				readVal = input.read();
+				if(readVal == (int)'\n')
+					continue;
+				nextReadColumnNumber++;
+				if(readVal == (int)'\r')
+				{
+					nextReadLineNumber++;
+					nextReadColumnNumber = 1;					
+				}
+				return readVal;
 			}
-			return readVal;
 		}
 		catch (IOException e)
 		{
@@ -180,8 +185,12 @@ public class Scanner
 		{
 			emittedTokens.add(new Token(kind, accumulator.toString(), tokenStartLineNumber, tokenStartColumnNumber));
 			accumulator.setLength(0);
+		}
+		
+		public void startToken()
+		{
 			tokenStartLineNumber = nextReadLineNumber;
-			tokenStartColumnNumber = nextReadColumnNumber;
+			tokenStartColumnNumber = nextReadColumnNumber - 1;
 		}
 		
 		public boolean isDecimalSeparator()

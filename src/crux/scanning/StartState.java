@@ -12,11 +12,13 @@ public class StartState implements State
 	{
 		if(context.isEof())
 		{
+			context.startToken();
 			context.emit(Kind.EOF);
 			return this;
 		}
 		if(context.isDigit())
 		{
+			context.startToken();
 			context.pushChar();
 			return NumberState.instance();
 		}
@@ -26,19 +28,23 @@ public class StartState implements State
 		}
 		if(context.isLetter() || context.value() == '_')
 		{
+			context.startToken();
 			context.pushChar();
 			return WordState.instance();
 		}
 		if(context.value() == '/')
 		{
+			context.startToken();
 			context.pushChar();
 			return CommentOrDivState.instance();
 		}
 		if(context.isSymbol())
 		{
+			context.startToken();
 			context.pushChar();
 			return SymbolState.instance();
 		}
+		context.startToken();
 		context.pushChar();
 		context.emit(Kind.ERROR);
 		return this;

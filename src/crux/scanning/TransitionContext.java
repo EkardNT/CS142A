@@ -12,6 +12,7 @@ public interface TransitionContext
 	public char value();
 	public void pushChar();
 	public char popChar();
+	public void startToken();
 	public void emit(Token.Kind kind);
 	public void popAllChars();
 	public boolean isDecimalSeparator();

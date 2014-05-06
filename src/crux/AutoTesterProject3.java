@@ -104,7 +104,7 @@ public class AutoTesterProject3 {
             e.printStackTrace();
             return NOT_ACCESSABLE;
         }
-        
+
         Parser p = new Parser(s);
         p.parse();
         
