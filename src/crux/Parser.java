@@ -1,11 +1,11 @@
 package crux;
 
 import java.util.Stack;
+
 import crux.parsing.FirstSetUnsatisfiedException;
 import crux.parsing.LL1Reader;
 import crux.parsing.ParseNode;
 import crux.parsing.RequiredTokenException;
-import crux.symbols.SymbolTable;
 
 public class Parser 
 {	

@@ -1,10 +1,8 @@
-package crux.symbols;
+package crux;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-
-import crux.Symbol;
 
 public class SymbolTable
 {
