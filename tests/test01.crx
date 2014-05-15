@@ -1,10 +1,9 @@
-// test presence of built-in functions
+// test multiple functions
+
+func foo() : void {
+  ::printInt(5);
+}
 
 func main() : void {
-  ::printInt(7);
-  ::printFloat(8.0);
-  ::printBool(true);
-  ::println();
-  ::readInt();
-  ::readFloat();
+  ::foo();
 }

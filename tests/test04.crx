@@ -1,6 +1,7 @@
-// parameter and local of same name
+// test index operator
 
-func foo(a:int) : void {
-  var a : float;
-  ::println();
+array x: int[10][10][10];
+
+func main() : void {
+  ::printInt(x[2][3][4]);
 }

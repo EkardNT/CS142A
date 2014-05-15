@@ -1,8 +1,12 @@
-// variables case sensitive
+// test while loop
 
 func main() : void {
-  var laMbda : int;
-  var lambda : float;
+  var x:bool;
 
+  while (x) {
+    ::println();
+    ::printBool(x);
+    let x = not x;
+  }
   ::println();
 }

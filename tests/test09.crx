@@ -1,9 +1,7 @@
-// test block-level scope
+// test nested expressions
 
 func main() : void {
-  var a : int;
-  if (true) {
-    var a: float;
-    ::foo();
+  if (((((true))))) {
+    ::printInt(5);
   }
 }

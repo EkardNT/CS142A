@@ -1,9 +1,13 @@
-// shadow global with local
-
-var a : int;
+// test comparisons
 
 func main() : void {
-  var a : float;
+  var a:float;
+  var b:float;
 
-  ::printFloat(a);
+  ::printBool(a < b);
+  ::printBool(a <= b);
+  ::printBool(a == b);
+  ::printBool(a != b);
+  ::printBool(a >= b);
+  ::printBool(a > b);
 }

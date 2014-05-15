@@ -1,13 +1,12 @@
-Error parsing file.
-DeclareSymbolError(3,26)[a already exists.]
-Symbol(readInt)
-Symbol(readFloat)
-Symbol(printBool)
-Symbol(printInt)
-Symbol(printFloat)
-Symbol(println)
-Symbol(foo)
-  Symbol(a)
-  Symbol(b)
-
+ast.DeclarationList(3,1)
+  ast.FunctionDefinition(3,1)[Symbol(main), []]
+    ast.StatementList(4,3)
+      ast.VariableDeclaration(4,3)[Symbol(x)]
+      ast.Assignment(6,3)
+        ast.AddressOf(6,7)[x]
+        ast.LogicalAnd(6,17)
+          ast.LogicalNot(6,11)
+            ast.Dereference(6,15)
+              ast.AddressOf(6,15)[x]
+          ast.LiteralBool(6,21)[TRUE]
 

@@ -1,5 +1,7 @@
-// params of same name
+// test assignment
 
-func foo(a:int, b:float, a:bool) : void {
-  ::println();
+func main() : void {
+  var x:bool;
+
+  let x = not x and true;
 }
