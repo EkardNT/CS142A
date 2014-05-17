@@ -1,19 +1,37 @@
 package crux;
 
-import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-
-import crux.Token.Kind;
-import crux.parsing.LL1Reader;
 
 public class Compiler 
 {
 	public static final String uciNetID = "dtetreau";
 	public static final String studentID = "35571095";
 	public static final String studentName = "Drake Tetreault";
-	
-	/* NOTE: main() method removed because AutoTester will be used. */
+    
+    public static void main(String[] args)
+    {
+        String sourceFilename = args[0];
+        
+        Scanner s = null;
+        try {
+            s = new Scanner(new FileReader(sourceFilename));
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("Error accessing the source file: \"" + sourceFilename + "\"");
+            System.exit(-2);
+        }
+
+        Parser p = new Parser(s);
+        ast.Command syntaxTree = p.parse();
+        if (p.hasError()) {
+            System.out.println("Error parsing file " + sourceFilename);
+            System.out.println(p.errorReport());
+            System.exit(-3);
+        }
+        
+        ast.PrettyPrinter pp = new ast.PrettyPrinter();
+        syntaxTree.accept(pp);
+        System.out.println(pp.toString());
+    }
 }
