@@ -10,6 +10,7 @@ import crux.parsing.FirstSetUnsatisfiedException;
 import crux.parsing.LL1Reader;
 import crux.parsing.ParseNode;
 import crux.parsing.RequiredTokenException;
+import crux.parsing.UnresolvableSymbolException;
 
 public class Parser 
 {	
@@ -75,10 +76,22 @@ public class Parser
 	
 	public Command parse()
 	{
-			return program();
+			try 
+			{
+				return program();
+			} 
+			catch (RequiredTokenException e)
+			{
+				// According to instructions, if the parser encounters a syntax
+				// error it returns an Error node.
+				return new Error(
+					e.ActualToken.getLineNumber(), 
+					e.ActualToken.getCharPos(), 
+					String.format("A token of kind \"%s\" was expected but the token \"%\" of kind \"%s\" was found instead.", e.ExpectedKind, e.ActualToken.getLexeme(), e.ActualToken.getKind()));
+			}
 	}
 	
-	private Command program()
+	private Command program() throws RequiredTokenException
 	{
 		enterRule(NonTerminal.PROGRAM);
 		DeclarationList declarationList = declaration_list(1, 1);
@@ -86,7 +99,7 @@ public class Parser
 		return declarationList;
 	}
 	
-	private StatementList statement_block(boolean suppressNewScope) 
+	private StatementList statement_block(boolean suppressNewScope) throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.STATEMENT_BLOCK);
 		if(!suppressNewScope)
@@ -100,7 +113,7 @@ public class Parser
 		return statementList;
 	}
 	
-	private StatementList statement_list(int fallbackLineNumber, int fallbackCharPosition) 
+	private StatementList statement_list(int fallbackLineNumber, int fallbackCharPosition) throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.STATEMENT_LIST);
 		List<Statement> statements = new ArrayList<Statement>();
@@ -113,14 +126,24 @@ public class Parser
 			statements);
 	}
 	
-	private Statement statement() 
+	private Statement statement() throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.STATEMENT);
 		Statement statement = null;
 		if(firstSetSatisfied(NonTerminal.VARIABLE_DECLARATION))
 			statement = variable_declaration();
 		else if(firstSetSatisfied(NonTerminal.CALL_STATEMENT))
-			statement = call_statement();
+			try 
+			{
+				statement = call_statement();
+			} 
+			catch (UnresolvableSymbolException e) 
+			{
+				return new Error(
+					e.UnresolvedToken.getLineNumber(),
+					e.UnresolvedToken.getCharPos(),
+					String.format("Unable to resolve symbol \"%s\".", e.UnresolvedToken.getLexeme()));
+			}
 		else if(firstSetSatisfied(NonTerminal.ASSIGNMENT_STATEMENT))
 			statement = assignment_statement();
 		else if(firstSetSatisfied(NonTerminal.IF_STATEMENT))
@@ -140,7 +163,7 @@ public class Parser
 		return statement;
 	}
 	
-	private Return return_statement() 
+	private Return return_statement() throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.RETURN_STATEMENT);
 		Token returnToken = require(Token.Kind.RETURN);
@@ -150,7 +173,7 @@ public class Parser
 		return new Return(returnToken.getLineNumber(), returnToken.getCharPos(), arg);
 	}
 	
-	private WhileLoop while_statement() 
+	private WhileLoop while_statement() throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.WHILE_STATEMENT);
 		Token whileToken = require(Token.Kind.WHILE);
@@ -164,7 +187,7 @@ public class Parser
 			body);
 	}
 	
-	private IfElseBranch if_statement() 
+	private IfElseBranch if_statement() throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.IF_STATEMENT);
 		Token ifToken = require(Token.Kind.IF);
@@ -180,7 +203,7 @@ public class Parser
 				elseBlock);
 	}
 	
-	private Call call_statement() 
+	private Call call_statement() throws RequiredTokenException, UnresolvableSymbolException 
 	{
 		enterRule(NonTerminal.CALL_STATEMENT);
 		Call callExpression = call_expression();
@@ -189,7 +212,7 @@ public class Parser
 		return callExpression;
 	}
 	
-	private Assignment assignment_statement() 
+	private Assignment assignment_statement() throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.ASSIGNMENT_STATEMENT);
 		Token letToken = require(Token.Kind.LET);
@@ -205,7 +228,7 @@ public class Parser
 			source);			
 	}
 	
-	private DeclarationList declaration_list(int fallbackLineNumber, int fallbackCharPosition) 
+	private DeclarationList declaration_list(int fallbackLineNumber, int fallbackCharPosition) throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.DECLARATION_LIST);
 		ArrayList<Declaration> declarations = new ArrayList<Declaration>();
@@ -221,7 +244,7 @@ public class Parser
 			declarations);
 	}
 	
-	private Declaration declaration() 
+	private Declaration declaration() throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.DECLARATION);
 		Declaration declaration = null;
@@ -242,7 +265,7 @@ public class Parser
 		return declaration;
 	}
 	
-	private FunctionDefinition function_definition() 
+	private FunctionDefinition function_definition() throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.FUNCTION_DEFINITION);
 		Token funcToken = require(Token.Kind.FUNC);
@@ -264,7 +287,7 @@ public class Parser
 				bodyStatements);
 	}
 	
-	private ArrayDeclaration array_declaration()
+	private ArrayDeclaration array_declaration() throws RequiredTokenException
 	{
 		enterRule(NonTerminal.ARRAY_DECLARATION);
 		Token arrayToken = require(Token.Kind.ARRAY);
@@ -288,7 +311,7 @@ public class Parser
 				nameSymbol);
 	}
 	
-	private VariableDeclaration variable_declaration()
+	private VariableDeclaration variable_declaration() throws RequiredTokenException
 	{
 		enterRule(NonTerminal.VARIABLE_DECLARATION);
 		Token varToken = require(Token.Kind.VAR);
@@ -303,7 +326,7 @@ public class Parser
 			nameSymbol);
 	}
 	
-	private ArrayList<Symbol> parameter_list()
+	private ArrayList<Symbol> parameter_list() throws RequiredTokenException
 	{
 		enterRule(NonTerminal.PARAMETER_LIST);
 		ArrayList<Symbol> parameters = new ArrayList<Symbol>();
@@ -317,7 +340,7 @@ public class Parser
 		return parameters;
 	}
 	
-	private Symbol parameter()
+	private Symbol parameter() throws RequiredTokenException
 	{
 		enterRule(NonTerminal.PARAMETER);
 		Symbol nameSymbol = defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
@@ -327,7 +350,7 @@ public class Parser
 		return nameSymbol;
 	}
 	
-	private ExpressionList expression_list(int fallbackLineNumber, int fallbackCharPosition) 
+	private ExpressionList expression_list(int fallbackLineNumber, int fallbackCharPosition) throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.EXPRESSION_LIST);
 		ArrayList<Expression> expressions = new ArrayList<Expression>();
@@ -344,7 +367,7 @@ public class Parser
 			expressions);
 	}
 	
-	private Call call_expression() 
+	private Call call_expression() throws RequiredTokenException, UnresolvableSymbolException 
 	{
 		enterRule(NonTerminal.CALL_EXPRESSION);
 		Token callToken = require(Token.Kind.CALL);
@@ -360,7 +383,7 @@ public class Parser
 			argumentExpressions);
 	}
 	
-	private Expression expression3() 
+	private Expression expression3() throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.EXPRESSION3);
 		Expression expression = null;
@@ -380,7 +403,16 @@ public class Parser
 		else if(firstSetSatisfied(NonTerminal.DESIGNATOR))
 			expression = designator(false);
 		else if(firstSetSatisfied(NonTerminal.CALL_EXPRESSION))
-			expression = call_expression();
+			try 
+			{
+				expression = call_expression();
+			} catch (UnresolvableSymbolException e) 
+			{
+				expression = new Error(
+					e.UnresolvedToken.getLineNumber(),
+					e.UnresolvedToken.getCharPos(),
+					String.format("Unable to resolve symbol \"%s\".", e.UnresolvedToken.getLexeme()));
+			}
 		else if(firstSetSatisfied(NonTerminal.LITERAL))
 			expression = literal();
 		else
@@ -392,7 +424,7 @@ public class Parser
 		return expression;
 	}
 	
-	private Expression expression2() 
+	private Expression expression2() throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.EXPRESSION2);
 		Expression lhs = expression3();
@@ -405,7 +437,7 @@ public class Parser
 		return lhs;
 	}
 	
-	private Expression expression1() 
+	private Expression expression1() throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.EXPRESSION1);
 		Expression lhs = expression2();
@@ -418,7 +450,7 @@ public class Parser
 		return lhs;
 	}
 	
-	private Expression expression0() 
+	private Expression expression0() throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.EXPRESSION0);
 		Expression lhs = expression1();
@@ -488,7 +520,7 @@ public class Parser
 		return token;
 	}
 	
-	private Token type()
+	private Token type() throws RequiredTokenException
 	{
 		enterRule(NonTerminal.TYPE);
 		Token typeToken = emitTerminal(require(Token.Kind.IDENTIFIER));
@@ -496,11 +528,22 @@ public class Parser
 		return typeToken;
 	}
 	
-	private Expression designator(boolean acceptAddressOf) 
+	private Expression designator(boolean acceptAddressOf) throws RequiredTokenException 
 	{
 		enterRule(NonTerminal.DESIGNATOR);
 		Token dereferencedToken = emitTerminal(require(Token.Kind.IDENTIFIER));
-		Symbol dereferencedSymbol = resolveSymbol(dereferencedToken);
+		Symbol dereferencedSymbol = null;
+		try 
+		{
+			dereferencedSymbol = resolveSymbol(dereferencedToken);
+		}
+		catch (UnresolvableSymbolException e) 
+		{
+			return new Error(
+				dereferencedToken.getLineNumber(),
+				dereferencedToken.getCharPos(),
+				String.format("Unable to resolve symbol \"%s\".", dereferencedToken.getLexeme()));
+		}
 		Index prevIndex = null;
 		while(accept(Token.Kind.OPEN_BRACKET))
 		{
@@ -612,7 +655,7 @@ public class Parser
 		return nonTerminal.FirstSet.contains(reader.kind());
 	}
 	
-	private Token require(Token.Kind kind)
+	private Token require(Token.Kind kind) throws RequiredTokenException
 	{
 		if(reader.kind().equals(kind))
 		{
@@ -621,13 +664,7 @@ public class Parser
 			return token;
 		}
 		else
-			return new Token(
-				Token.Kind.ERROR,
-				String.format("Token of kind \"%s\" found where \"%s\" required.",
-					reader.token().getKind(),
-					kind),
-				reader.token().getLineNumber(),
-				reader.token().getCharPos());
+			throw new RequiredTokenException(kind, reader.token());
 	}
 	
 	private boolean accept(Token.Kind kind)
@@ -640,14 +677,14 @@ public class Parser
 		return false;
 	}
 	
-	private Symbol resolveSymbol(Token token)
+	private Symbol resolveSymbol(Token token) throws UnresolvableSymbolException
 	{
 		if(symbolTables.peek().containsSymbol(token.getLexeme(), true))
 			return symbolTables.peek().lookup(token.getLexeme());
 		errorReport.append(String.format("ResolveSymbolError(%d,%d)[Could not find %s.]\n", token.getLineNumber(), token.getCharPos(), token.getLexeme()));
 		appendSymbolHistory(errorReport, symbolTables.peek());
 		errorReport.append("\n");
-		throw new RuntimeException("Failed to resolve symbol: " + token.getLexeme());
+		throw new UnresolvableSymbolException(token);
 	}
 	
 	private Symbol defineSymbol(Token token)
