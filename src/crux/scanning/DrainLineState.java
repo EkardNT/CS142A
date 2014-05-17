@@ -9,6 +9,6 @@ public class DrainLineState implements State
 	public State transition(TransitionContext context) 
 	{
 		context.popAllChars();
-		return context.isEof() || context.isNewline() ? StartState.instance() : this;
+		return (context.isEof() || context.isNewline()) ? StartState.instance().transition(context) : this;
 	}
 }

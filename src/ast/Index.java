@@ -25,4 +25,9 @@ public class Index extends Command implements Expression {
 	public void accept(CommandVisitor visitor) {
 		visitor.visit(this);
 	}
+
+	@Override
+	public int getLeftmostCharPos() {
+		return base.getLeftmostCharPos();
+	}
 }

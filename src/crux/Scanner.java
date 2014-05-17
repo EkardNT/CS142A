@@ -23,7 +23,7 @@ public class Scanner
 	
 	private StringBuilder accumulator;	
 	private int nextReadLineNumber, nextReadColumnNumber, tokenStartLineNumber, tokenStartColumnNumber;
-	private boolean eof, prevValueWasWhitespace;	
+	private boolean eof;	
 	private char value;
 	private State currentState;
 	private TransitionContext context;
@@ -37,6 +37,7 @@ public class Scanner
 		currentState = StartState.instance();
 		emittedTokens = new LinkedList<Token>();
 		nextReadLineNumber = nextReadColumnNumber = 1;
+		eof = false;
 	}
 	
 	public Token next()
@@ -72,10 +73,10 @@ public class Scanner
 			while(true)
 			{
 				readVal = input.read();
-				if(readVal == (int)'\n')
-					continue;
+				//if(readVal == (int)'\n')
+				//	continue;
 				nextReadColumnNumber++;
-				if(readVal == (int)'\r')
+				if(readVal == (int)'\n')
 				{
 					nextReadLineNumber++;
 					nextReadColumnNumber = 1;					

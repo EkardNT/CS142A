@@ -1,9 +1,11 @@
 package crux;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 
 import ast.*;
+import ast.Error;
 import crux.parsing.FirstSetUnsatisfiedException;
 import crux.parsing.LL1Reader;
 import crux.parsing.ParseNode;
@@ -73,32 +75,18 @@ public class Parser
 	
 	public Command parse()
 	{
-		try
-		{
 			return program();
-		}
-		catch(RequiredTokenException e)
-		{
-			errorReport.append(String.format("SyntaxError(%d,%d)[Expected %s but got %s.]", e.ActualToken.getLineNumber(), e.ActualToken.getCharPos(), e.ExpectedKind, e.ActualToken.getKind()));
-			errorReport.append(String.format("SyntaxError(%d,%d)[Could not complete parsing.]", e.ActualToken.getLineNumber(), e.ActualToken.getCharPos()));
-			return new ast.Error(0, 0);
-		}
-		catch(FirstSetUnsatisfiedException e)
-		{
-			errorReport.append(String.format("First set unsatisfied for non-terminal of kind \"%s\".", e.Unsatisfied.toString()));
-			return new ast.Error(0, 0);
-		}
 	}
 	
-	private Command program() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private Command program()
 	{
 		enterRule(NonTerminal.PROGRAM);
-		DeclarationList declarationList = declaration_list();
+		DeclarationList declarationList = declaration_list(1, 1);
 		exitRule();
 		return declarationList;
 	}
 	
-	private StatementList statement_block(boolean suppressNewScope) throws RequiredTokenException, FirstSetUnsatisfiedException
+	private StatementList statement_block(boolean suppressNewScope) 
 	{
 		enterRule(NonTerminal.STATEMENT_BLOCK);
 		if(!suppressNewScope)
@@ -112,23 +100,23 @@ public class Parser
 		return statementList;
 	}
 	
-	private StatementList statement_list(int fallbackLineNumber, int fallbackCharPosition) throws FirstSetUnsatisfiedException, RequiredTokenException
+	private StatementList statement_list(int fallbackLineNumber, int fallbackCharPosition) 
 	{
 		enterRule(NonTerminal.STATEMENT_LIST);
-		ArrayList<Command> statements = new ArrayList<Command>();
+		List<Statement> statements = new ArrayList<Statement>();
 		while(firstSetSatisfied(NonTerminal.STATEMENT))
 			statements.add(statement());
 		exitRule();
 		return new StatementList(
-			statements.size() > 0 ? statements.get(0).getLineNumber() : fallbackLineNumber,
-			statements.size() > 0 ? statements.get(0).getCharPosition() : fallbackCharPosition,
+			statements.size() > 0 ? ((Command)statements.get(0)).lineNumber() : fallbackLineNumber,
+			statements.size() > 0 ? ((Command)statements.get(0)).charPosition() : fallbackCharPosition,
 			statements);
 	}
 	
-	private Command statement() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private Statement statement() 
 	{
 		enterRule(NonTerminal.STATEMENT);
-		Command statement = null;
+		Statement statement = null;
 		if(firstSetSatisfied(NonTerminal.VARIABLE_DECLARATION))
 			statement = variable_declaration();
 		else if(firstSetSatisfied(NonTerminal.CALL_STATEMENT))
@@ -143,55 +131,56 @@ public class Parser
 			statement = return_statement();
 		else
 		{
-			// TODO: return error?
-			statement = null;
-			throw new FirstSetUnsatisfiedException(NonTerminal.STATEMENT);
+			statement = new Error(
+				reader.token().getLineNumber(), 
+				reader.token().getCharPos(),
+				String.format("First set unsatisfied for non-terminal of kind \"%s\".", reader.token().getKind()));
 		}
 		exitRule();
 		return statement;
 	}
 	
-	private Return return_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private Return return_statement() 
 	{
 		enterRule(NonTerminal.RETURN_STATEMENT);
 		Token returnToken = require(Token.Kind.RETURN);
-		Command returnExpression = expression0();
+		Expression arg = expression0();
 		require(Token.Kind.SEMICOLON);
 		exitRule();
-		return new Return(returnToken.getLineNumber(), returnToken.getCharPos(), returnExpression);
+		return new Return(returnToken.getLineNumber(), returnToken.getCharPos(), arg);
 	}
 	
-	private WhileLoop while_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private WhileLoop while_statement() 
 	{
 		enterRule(NonTerminal.WHILE_STATEMENT);
 		Token whileToken = require(Token.Kind.WHILE);
-		Command continuationExpression = expression0();
-		StatementList bodyStatements = statement_block(false);
+		Expression conditional = expression0();
+		StatementList body = statement_block(false);
 		exitRule();
 		return new WhileLoop(
 			whileToken.getLineNumber(),
 			whileToken.getCharPos(),
-			continuationExpression,
-			bodyStatements);
+			conditional,
+			body);
 	}
 	
-	private IfElseBranch if_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private IfElseBranch if_statement() 
 	{
 		enterRule(NonTerminal.IF_STATEMENT);
 		Token ifToken = require(Token.Kind.IF);
-		Command conditionalExpression = expression0();
-		StatementList ifBodyStatements = statement_block(false);
-		StatementList elseBodyStatements = accept(Token.Kind.ELSE) ? statement_block(false) : null;
+		Expression conditional = expression0();
+		StatementList thenBlock = statement_block(false);
+		StatementList elseBlock = accept(Token.Kind.ELSE) ? statement_block(false) : new StatementList(reader.token().getLineNumber(), reader.token().getCharPos(), new ArrayList<Statement>());
 		exitRule(); 
 		return new IfElseBranch(
 				ifToken.getLineNumber(), 
 				ifToken.getCharPos(), 
-				conditionalExpression, 
-				ifBodyStatements, 
-				elseBodyStatements);
+				conditional, 
+				thenBlock, 
+				elseBlock);
 	}
 	
-	private Call call_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private Call call_statement() 
 	{
 		enterRule(NonTerminal.CALL_STATEMENT);
 		Call callExpression = call_expression();
@@ -200,21 +189,26 @@ public class Parser
 		return callExpression;
 	}
 	
-	private Assignment assignment_statement() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private Assignment assignment_statement() 
 	{
 		enterRule(NonTerminal.ASSIGNMENT_STATEMENT);
 		Token letToken = require(Token.Kind.LET);
-		designator();
+		Expression destination = designator(true);
 		require(Token.Kind.ASSIGN);
-		expression0();
+		Expression source = expression0();
 		require(Token.Kind.SEMICOLON);
 		exitRule();
+		return new Assignment(
+			letToken.getLineNumber(),
+			letToken.getCharPos(),
+			destination,
+			source);			
 	}
 	
-	private DeclarationList declaration_list(int fallbackLineNumber, int fallbackCharPosition) throws FirstSetUnsatisfiedException, RequiredTokenException
+	private DeclarationList declaration_list(int fallbackLineNumber, int fallbackCharPosition) 
 	{
 		enterRule(NonTerminal.DECLARATION_LIST);
-		ArrayList<Command> declarations = new ArrayList<Command>();
+		ArrayList<Declaration> declarations = new ArrayList<Declaration>();
 		while(firstSetSatisfied(NonTerminal.DECLARATION))
 		{
 			declarations.add(declaration());			
@@ -222,15 +216,15 @@ public class Parser
 		require(Token.Kind.EOF);
 		exitRule();
 		return new DeclarationList(
-			declarations.size() > 0 ? declarations.get(0).getLineNumber() : fallbackLineNumber,
-			declarations.size() > 0 ? declarations.get(0).getCharPosition() : fallbackCharPosition,
+			declarations.size() > 0 ? ((Command)declarations.get(0)).lineNumber() : fallbackLineNumber,
+			declarations.size() > 0 ? ((Command)declarations.get(0)).charPosition() : fallbackCharPosition,
 			declarations);
 	}
 	
-	private Command declaration() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private Declaration declaration() 
 	{
 		enterRule(NonTerminal.DECLARATION);
-		Command declaration = null;
+		Declaration declaration = null;
 		if(firstSetSatisfied(NonTerminal.VARIABLE_DECLARATION))
 			declaration = variable_declaration();
 		else if(firstSetSatisfied(NonTerminal.ARRAY_DECLARATION))
@@ -239,38 +233,38 @@ public class Parser
 			declaration = function_definition();
 		else
 		{
-			// TODO:
-			declaration = new ast.Error(0, 0);
-			throw new FirstSetUnsatisfiedException(NonTerminal.DECLARATION);
+			declaration = new Error(
+				reader.token().getLineNumber(), 
+				reader.token().getCharPos(), 
+				String.format("First sets unsatisfied by token of kind \"%s\".", reader.token().getKind()));
 		}
 		exitRule();
 		return declaration;
 	}
 	
-	private FunctionDeclaration function_definition() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private FunctionDefinition function_definition() 
 	{
 		enterRule(NonTerminal.FUNCTION_DEFINITION);
 		Token funcToken = require(Token.Kind.FUNC);
 		Symbol nameSymbol = defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
 		enterScope();
 		require(Token.Kind.OPEN_PAREN);
-		ArrayList<Parameter> parameters = parameter_list();
+		ArrayList<Symbol> parameters = parameter_list();
 		require(Token.Kind.CLOSE_PAREN);
 		require(Token.Kind.COLON);
-		Token returnTypeToken = type();
+		type();
 		StatementList bodyStatements = statement_block(true);
 		exitScope();
 		exitRule();
-		return new FunctionDeclaration(
+		return new FunctionDefinition(
 				funcToken.getLineNumber(),
 				funcToken.getCharPos(),
-				nameSymbol.getName(),
-				returnTypeToken.getLexeme(),
+				nameSymbol,
 				parameters,
 				bodyStatements);
 	}
 	
-	private ArrayDeclaration array_declaration() throws RequiredTokenException
+	private ArrayDeclaration array_declaration()
 	{
 		enterRule(NonTerminal.ARRAY_DECLARATION);
 		Token arrayToken = require(Token.Kind.ARRAY);
@@ -291,12 +285,10 @@ public class Parser
 		return new ArrayDeclaration(
 				arrayToken.getLineNumber(), 
 				arrayToken.getCharPos(),
-				nameSymbol.getName(),
-				typeToken.getLexeme(),
-				dimensions);
+				nameSymbol);
 	}
 	
-	private VariableDeclaration variable_declaration() throws RequiredTokenException
+	private VariableDeclaration variable_declaration()
 	{
 		enterRule(NonTerminal.VARIABLE_DECLARATION);
 		Token varToken = require(Token.Kind.VAR);
@@ -305,13 +297,16 @@ public class Parser
 		Token typeToken = type();
 		require(Token.Kind.SEMICOLON);
 		exitRule();
-		return new VariableDeclaration(varToken.getLineNumber(), varToken.getCharPos(), nameSymbol.getName(), typeToken.getLexeme());
+		return new VariableDeclaration(
+			varToken.getLineNumber(), 
+			varToken.getCharPos(), 
+			nameSymbol);
 	}
 	
-	private ArrayList<Parameter> parameter_list() throws RequiredTokenException
+	private ArrayList<Symbol> parameter_list()
 	{
 		enterRule(NonTerminal.PARAMETER_LIST);
-		ArrayList<Parameter> parameters = new ArrayList<Parameter>();
+		ArrayList<Symbol> parameters = new ArrayList<Symbol>();
 		if(firstSetSatisfied(NonTerminal.PARAMETER))
 		{
 			parameters.add(parameter());
@@ -322,24 +317,20 @@ public class Parser
 		return parameters;
 	}
 	
-	private Parameter parameter() throws RequiredTokenException
+	private Symbol parameter()
 	{
 		enterRule(NonTerminal.PARAMETER);
 		Symbol nameSymbol = defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
 		require(Token.Kind.COLON);
-		Token typeToken = type();
+		type();
 		exitRule();
-		return new Parameter(
-			nameSymbol.getLineNumber(),
-			nameSymbol.getCharPosition(),
-			nameSymbol.getName(),
-			typeToken.getLexeme());
+		return nameSymbol;
 	}
 	
-	private ExpressionList expression_list(int fallbackLineNumber, int fallbackCharPosition) throws FirstSetUnsatisfiedException, RequiredTokenException
+	private ExpressionList expression_list(int fallbackLineNumber, int fallbackCharPosition) 
 	{
 		enterRule(NonTerminal.EXPRESSION_LIST);
-		ArrayList<Command> expressions = new ArrayList<Command>();
+		ArrayList<Expression> expressions = new ArrayList<Expression>();
 		if(firstSetSatisfied(NonTerminal.EXPRESSION0))
 		{
 			expressions.add(expression0());
@@ -348,124 +339,156 @@ public class Parser
 		}
 		exitRule();
 		return new ExpressionList(
-			expressions.size() > 0 ? expressions.get(0).getLineNumber() : fallbackLineNumber,
-			expressions.size() > 0 ? expressions.get(0).getCharPosition() : fallbackCharPosition,
+			expressions.size() > 0 ? ((Command)expressions.get(0)).lineNumber() : fallbackLineNumber,
+			expressions.size() > 0 ? expressions.get(0).getLeftmostCharPos(): fallbackCharPosition,
 			expressions);
 	}
 	
-	private Call call_expression() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private Call call_expression() 
 	{
 		enterRule(NonTerminal.CALL_EXPRESSION);
 		Token callToken = require(Token.Kind.CALL);
 		Symbol functionNameSymbol = resolveSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
-		require(Token.Kind.OPEN_PAREN);
-		ExpressionList argumentExpressions = expression_list(callToken.getLineNumber(), callToken.getCharPos());
+		Token openParenToken = require(Token.Kind.OPEN_PAREN);
+		ExpressionList argumentExpressions = expression_list(openParenToken.getLineNumber(), openParenToken.getCharPos() + 1);
 		require(Token.Kind.CLOSE_PAREN);
 		exitRule();
 		return new Call(
 			callToken.getLineNumber(),
 			callToken.getCharPos(),
-			functionNameSymbol.getName(),
+			functionNameSymbol,
 			argumentExpressions);
 	}
 	
-	private void expression3() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private Expression expression3() 
 	{
 		enterRule(NonTerminal.EXPRESSION3);
+		Expression expression = null;
+		Token startToken = reader.token();
 		if(accept(Token.Kind.NOT))
-			expression3();
+		{
+			expression = new LogicalNot(
+				startToken.getLineNumber(),
+				startToken.getCharPos(),
+				expression3());
+		}
 		else if(accept(Token.Kind.OPEN_PAREN))
 		{
-			expression0();
+			expression = expression0();
 			require(Token.Kind.CLOSE_PAREN);
 		}
 		else if(firstSetSatisfied(NonTerminal.DESIGNATOR))
-			designator();
+			expression = designator(false);
 		else if(firstSetSatisfied(NonTerminal.CALL_EXPRESSION))
-			call_expression();
+			expression = call_expression();
 		else if(firstSetSatisfied(NonTerminal.LITERAL))
-			literal();
+			expression = literal();
 		else
-			throw new FirstSetUnsatisfiedException(NonTerminal.EXPRESSION3);
+			expression = new Error(
+				startToken.getLineNumber(),
+				startToken.getCharPos(),
+				String.format("First set unsatisfied by token of kind \"%s\".", startToken.getKind()));
 		exitRule();
+		return expression;
 	}
 	
-	private void expression2() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private Expression expression2() 
 	{
 		enterRule(NonTerminal.EXPRESSION2);
-		expression3();
+		Expression lhs = expression3();
 		while(firstSetSatisfied(NonTerminal.OP2))
 		{
-			op2();
-			expression3();
+			Token op = op2();
+			lhs = Command.newExpression(lhs, op, expression3());
 		}
 		exitRule();
+		return lhs;
 	}
 	
-	private void expression1() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private Expression expression1() 
 	{
 		enterRule(NonTerminal.EXPRESSION1);
-		expression2();
+		Expression lhs = expression2();
 		while(firstSetSatisfied(NonTerminal.OP1))
 		{
-			op1();
-			expression2();
+			Token op = op1();
+			lhs = Command.newExpression(lhs, op, expression2());
 		}
 		exitRule();
+		return lhs;
 	}
 	
-	private Command expression0() throws FirstSetUnsatisfiedException, RequiredTokenException
+	private Expression expression0() 
 	{
 		enterRule(NonTerminal.EXPRESSION0);
-		expression1();
+		Expression lhs = expression1();
 		if(firstSetSatisfied(NonTerminal.OP0))
 		{
-			op0();
-			expression1();
+			Token op = op0();
+			lhs = Command.newExpression(lhs, op, expression1());
 		}
 		exitRule();
+		return lhs;
 	}
 	
-	private void op2() throws FirstSetUnsatisfiedException
+	private Token op2()
 	{
 		enterRule(NonTerminal.OP2);
+		Token token = null;
 		if(firstSetSatisfied(NonTerminal.OP2))
 		{
-			emitTerminal(reader.token());
+			token = emitTerminal(reader.token());
 			reader.advance();
 		}
 		else
-			throw new FirstSetUnsatisfiedException(NonTerminal.OP2);
+			token = new Token(
+				Token.Kind.ERROR,
+				String.format("First set unsatisfied by token of kind \"%s\".", reader.kind()),
+				reader.token().getLineNumber(),
+				reader.token().getCharPos());
 		exitRule();
+		return token;
 	}
 	
-	private void op1() throws FirstSetUnsatisfiedException
+	private Token op1()
 	{
 		enterRule(NonTerminal.OP1);
+		Token token = null;
 		if(firstSetSatisfied(NonTerminal.OP1))
 		{
-			emitTerminal(reader.token());
+			token = emitTerminal(reader.token());
 			reader.advance();
 		}
 		else
-			throw new FirstSetUnsatisfiedException(NonTerminal.OP1);
+			token = new Token(
+				Token.Kind.ERROR,
+				String.format("First set unsatisfied by token of kind \"%s\".", reader.kind()),
+				reader.token().getLineNumber(),
+				reader.token().getCharPos());
 		exitRule();
+		return token;
 	}
 	
-	private void op0() throws FirstSetUnsatisfiedException
+	private Token op0()
 	{
 		enterRule(NonTerminal.OP0);
+		Token token = null;
 		if(firstSetSatisfied(NonTerminal.OP0))
 		{
-			emitTerminal(reader.token());
+			token = emitTerminal(reader.token());
 			reader.advance();
 		}
 		else
-			throw new FirstSetUnsatisfiedException(NonTerminal.OP0);
+			token = new Token(
+				Token.Kind.ERROR,
+				String.format("First set unsatisfied by token of kind \"%s\".", reader.kind()),
+				reader.token().getLineNumber(),
+				reader.token().getCharPos());
 		exitRule();
+		return token;
 	}
 	
-	private Token type() throws RequiredTokenException
+	private Token type()
 	{
 		enterRule(NonTerminal.TYPE);
 		Token typeToken = emitTerminal(require(Token.Kind.IDENTIFIER));
@@ -473,29 +496,68 @@ public class Parser
 		return typeToken;
 	}
 	
-	private Dereference designator() throws RequiredTokenException, FirstSetUnsatisfiedException
+	private Expression designator(boolean acceptAddressOf) 
 	{
 		enterRule(NonTerminal.DESIGNATOR);
-		Symbol dereferencedSymbol = resolveSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
+		Token dereferencedToken = emitTerminal(require(Token.Kind.IDENTIFIER));
+		Symbol dereferencedSymbol = resolveSymbol(dereferencedToken);
+		Index prevIndex = null;
 		while(accept(Token.Kind.OPEN_BRACKET))
 		{
-			expression0();
+			Expression indexExpression = expression0();
 			require(Token.Kind.CLOSE_BRACKET);
+			
+			if(prevIndex == null)
+			{
+				prevIndex = new Index(
+					((Command)indexExpression).lineNumber(), 
+					((Command)indexExpression).charPosition(), 
+					new AddressOf(
+						dereferencedToken.getLineNumber(),
+						dereferencedToken.getCharPos(),
+						dereferencedSymbol),
+					indexExpression);
+			}
+			else
+			{
+				prevIndex = new Index(
+					((Command)indexExpression).lineNumber(),
+					((Command)indexExpression).charPosition(),
+					prevIndex,
+					indexExpression);
+			}
 		}
 		exitRule();
+		if(acceptAddressOf && prevIndex == null)
+		{
+			return new AddressOf(
+				dereferencedToken.getLineNumber(),
+				dereferencedToken.getCharPos(),
+				dereferencedSymbol);
+		}
+		return new Dereference(
+			dereferencedToken.getLineNumber(),
+			dereferencedToken.getCharPos(),
+			prevIndex != null
+				? prevIndex
+				: new AddressOf(
+					dereferencedToken.getLineNumber(),
+					dereferencedToken.getCharPos(),
+					dereferencedSymbol));
 	}
 	
-	private void literal() throws FirstSetUnsatisfiedException
+	private Expression literal()
 	{
 		enterRule(NonTerminal.LITERAL);
-		if(firstSetSatisfied(NonTerminal.LITERAL))
-		{
-			emitTerminal(reader.token());
-			reader.advance();
-		}
-		else
-			throw new FirstSetUnsatisfiedException(NonTerminal.LITERAL);
+		Expression literal = firstSetSatisfied(NonTerminal.LITERAL)
+			? Command.newLiteral(emitTerminal(reader.token()))
+			: new Error(
+					reader.token().getLineNumber(),
+					reader.token().getCharPos(),
+					String.format("First set unsatisfied by token of kind \"%s\".", reader.token().getKind()));
+		reader.advance();
 		exitRule();
+		return literal;
 	}
 	
 	private Token emitTerminal(Token terminal)
@@ -550,7 +612,7 @@ public class Parser
 		return nonTerminal.FirstSet.contains(reader.kind());
 	}
 	
-	private Token require(Token.Kind kind) throws RequiredTokenException
+	private Token require(Token.Kind kind)
 	{
 		if(reader.kind().equals(kind))
 		{
@@ -559,7 +621,13 @@ public class Parser
 			return token;
 		}
 		else
-			throw new RequiredTokenException(kind, reader.token());
+			return new Token(
+				Token.Kind.ERROR,
+				String.format("Token of kind \"%s\" found where \"%s\" required.",
+					reader.token().getKind(),
+					kind),
+				reader.token().getLineNumber(),
+				reader.token().getCharPos());
 	}
 	
 	private boolean accept(Token.Kind kind)

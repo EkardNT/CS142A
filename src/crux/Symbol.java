@@ -15,4 +15,10 @@ public class Symbol
 	public String getName() { return identifier; }
 	public int getLineNumber() { return lineNumber; }
 	public int getCharPosition() { return charPosition; }
+	
+	@Override
+	public String toString()
+	{
+		return String.format("Symbol(%s)", identifier);
+	}
 }

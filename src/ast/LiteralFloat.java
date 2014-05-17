@@ -25,4 +25,9 @@ public class LiteralFloat extends Command implements Expression {
 		visitor.visit(this);
 	}
 
+	@Override
+	public int getLeftmostCharPos() {
+		return charPosition();
+	}
+
 }

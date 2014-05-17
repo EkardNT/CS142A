@@ -6,7 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 
-public class AutoTesterProject3 {
+public class AutoTesterProject4 {
 	
 	public static final int PASS = 0;
 	public static final int FAIL = 1;
@@ -28,8 +28,7 @@ public class AutoTesterProject3 {
         }
         
         Parser p = new Parser(s);
-        p.parse();
-        
+        ast.Command syntaxTree = p.parse();
 		try {
 			PrintStream outputStream = new PrintStream(outputFilename);
 			if (p.hasError()) {
@@ -37,10 +36,13 @@ public class AutoTesterProject3 {
 				outputStream.println(p.errorReport());
 				outputStream.close();
                 //System.exit(-3);
-            }else{
-            	outputStream.println("Crux program successfully parsed.");
-            	outputStream.close();
+            } else {
+            	ast.PrettyPrinter pp = new ast.PrettyPrinter();
+                syntaxTree.accept(pp);
+                outputStream.println(pp.toString());
+                outputStream.close();
             }
+			
 		} catch (IOException e) {
             System.err.println("Error opening output file: \"" + outputFilename + "\"");
 			e.printStackTrace();
@@ -104,9 +106,9 @@ public class AutoTesterProject3 {
             e.printStackTrace();
             return NOT_ACCESSABLE;
         }
-
+        
         Parser p = new Parser(s);
-        p.parse();
+        ast.Command syntaxTree = p.parse();
         
 		try {
 			PrintStream outputStream = new PrintStream(outputFilename);
@@ -116,8 +118,10 @@ public class AutoTesterProject3 {
 				outputStream.close();
                 //System.exit(-3);
             }else{
-            	outputStream.println("Crux program successfully parsed.");
-            	outputStream.close();
+            	ast.PrettyPrinter pp = new ast.PrettyPrinter();
+                syntaxTree.accept(pp);
+                outputStream.println(pp.toString());
+                outputStream.close();
             }
 		} catch (IOException e) {
             System.err.println("Error opening output file: \"" + outputFilename + "\"");
@@ -176,8 +180,8 @@ public class AutoTesterProject3 {
 		String studentID = Compiler.studentID;
 		String uciNetID = Compiler.uciNetID;
 		
-		int publicTestcaseNum = 11;
-		int privateTestcaseNum = 0;
+		int publicTestcaseNum = 10;
+		int privateTestcaseNum = 5;
 		
 		int publicPass = 0;
 		for (int i=1; i<=publicTestcaseNum; ++i){

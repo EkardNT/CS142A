@@ -20,4 +20,9 @@ public class Dereference extends Command implements Expression {
 	{
 		visitor.visit(this);
 	}
+
+	@Override
+	public int getLeftmostCharPos() {
+		return expression.getLeftmostCharPos();
+	}
 }

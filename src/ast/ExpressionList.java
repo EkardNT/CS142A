@@ -1,6 +1,5 @@
 package ast;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -8,17 +7,12 @@ public class ExpressionList extends Command implements Iterable<Expression> {
 	
 	private List<Expression> list;
 	
-	public ExpressionList(int lineNum, int charPos)
+	public ExpressionList(int lineNum, int charPos, List<Expression> expressions)
 	{
 		super(lineNum, charPos);
-		list = new ArrayList<Expression>();
+		list = expressions;
 	}
-	
-	public void add(Expression command)
-	{
-		list.add(command);
-	}
-	
+		
 	public int size()
 	{
 		return list.size();

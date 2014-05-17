@@ -34,4 +34,9 @@ public class Call extends Command implements Statement, Expression {
 		visitor.visit(this);
 	}
 
+	@Override
+	public int getLeftmostCharPos() {
+		return charPosition();
+	}
+
 }

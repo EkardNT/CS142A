@@ -32,4 +32,9 @@ public class Error extends Command implements Declaration, Statement, Expression
 		visitor.visit(this);
 	}
 
+	@Override
+	public int getLeftmostCharPos() {
+		return charPosition();
+	}
+
 }
