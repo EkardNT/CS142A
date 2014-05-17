@@ -10,6 +10,7 @@ import crux.parsing.FirstSetUnsatisfiedException;
 import crux.parsing.LL1Reader;
 import crux.parsing.ParseNode;
 import crux.parsing.RequiredTokenException;
+import crux.parsing.SymbolRedefinitionException;
 import crux.parsing.UnresolvableSymbolException;
 
 public class Parser 
@@ -131,7 +132,17 @@ public class Parser
 		enterRule(NonTerminal.STATEMENT);
 		Statement statement = null;
 		if(firstSetSatisfied(NonTerminal.VARIABLE_DECLARATION))
-			statement = variable_declaration();
+			try 
+			{
+				statement = variable_declaration();
+			} 
+			catch (SymbolRedefinitionException e) 
+			{
+				statement = new Error(
+					e.DuplicateToken.getLineNumber(),
+					e.DuplicateToken.getCharPos(),
+					String.format("Attempted to redefine symbol \"%s\".", e.DuplicateToken.getLexeme()));
+			}
 		else if(firstSetSatisfied(NonTerminal.CALL_STATEMENT))
 			try 
 			{
@@ -139,7 +150,7 @@ public class Parser
 			} 
 			catch (UnresolvableSymbolException e) 
 			{
-				return new Error(
+				statement = new Error(
 					e.UnresolvedToken.getLineNumber(),
 					e.UnresolvedToken.getCharPos(),
 					String.format("Unable to resolve symbol \"%s\".", e.UnresolvedToken.getLexeme()));
@@ -248,24 +259,34 @@ public class Parser
 	{
 		enterRule(NonTerminal.DECLARATION);
 		Declaration declaration = null;
-		if(firstSetSatisfied(NonTerminal.VARIABLE_DECLARATION))
-			declaration = variable_declaration();
-		else if(firstSetSatisfied(NonTerminal.ARRAY_DECLARATION))
-			declaration = array_declaration();
-		else if(firstSetSatisfied(NonTerminal.FUNCTION_DEFINITION))
-			declaration = function_definition();
-		else
+		try
+		{
+			if(firstSetSatisfied(NonTerminal.VARIABLE_DECLARATION))
+				declaration = variable_declaration();
+			else if(firstSetSatisfied(NonTerminal.ARRAY_DECLARATION))
+				declaration = array_declaration();
+			else if(firstSetSatisfied(NonTerminal.FUNCTION_DEFINITION))
+				declaration = function_definition();
+			else
+			{
+				declaration = new Error(
+					reader.token().getLineNumber(), 
+					reader.token().getCharPos(), 
+					String.format("First sets unsatisfied by token of kind \"%s\".", reader.token().getKind()));
+			}
+		}
+		catch(SymbolRedefinitionException e)
 		{
 			declaration = new Error(
-				reader.token().getLineNumber(), 
-				reader.token().getCharPos(), 
-				String.format("First sets unsatisfied by token of kind \"%s\".", reader.token().getKind()));
+				e.DuplicateToken.getLineNumber(),
+				e.DuplicateToken.getCharPos(),
+				String.format("Attempted to redefine symbol \"%s\".", e.DuplicateToken.getLexeme()));
 		}
 		exitRule();
 		return declaration;
 	}
 	
-	private FunctionDefinition function_definition() throws RequiredTokenException 
+	private FunctionDefinition function_definition() throws RequiredTokenException, SymbolRedefinitionException 
 	{
 		enterRule(NonTerminal.FUNCTION_DEFINITION);
 		Token funcToken = require(Token.Kind.FUNC);
@@ -287,7 +308,7 @@ public class Parser
 				bodyStatements);
 	}
 	
-	private ArrayDeclaration array_declaration() throws RequiredTokenException
+	private ArrayDeclaration array_declaration() throws RequiredTokenException, SymbolRedefinitionException
 	{
 		enterRule(NonTerminal.ARRAY_DECLARATION);
 		Token arrayToken = require(Token.Kind.ARRAY);
@@ -311,7 +332,7 @@ public class Parser
 				nameSymbol);
 	}
 	
-	private VariableDeclaration variable_declaration() throws RequiredTokenException
+	private VariableDeclaration variable_declaration() throws RequiredTokenException, SymbolRedefinitionException
 	{
 		enterRule(NonTerminal.VARIABLE_DECLARATION);
 		Token varToken = require(Token.Kind.VAR);
@@ -326,7 +347,7 @@ public class Parser
 			nameSymbol);
 	}
 	
-	private ArrayList<Symbol> parameter_list() throws RequiredTokenException
+	private ArrayList<Symbol> parameter_list() throws RequiredTokenException, SymbolRedefinitionException
 	{
 		enterRule(NonTerminal.PARAMETER_LIST);
 		ArrayList<Symbol> parameters = new ArrayList<Symbol>();
@@ -340,7 +361,7 @@ public class Parser
 		return parameters;
 	}
 	
-	private Symbol parameter() throws RequiredTokenException
+	private Symbol parameter() throws RequiredTokenException, SymbolRedefinitionException
 	{
 		enterRule(NonTerminal.PARAMETER);
 		Symbol nameSymbol = defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
@@ -443,8 +464,19 @@ public class Parser
 		Expression lhs = expression2();
 		while(firstSetSatisfied(NonTerminal.OP1))
 		{
-			Token op = op1();
-			lhs = Command.newExpression(lhs, op, expression2());
+			Token op;
+			try 
+			{
+				op = op1();
+				lhs = Command.newExpression(lhs, op, expression2());
+			} 
+			catch (FirstSetUnsatisfiedException e) 
+			{
+				lhs = new Error(
+					((Command)lhs).lineNumber(),
+					((Command)lhs).charPosition(),
+					String.format("First set unsatisfied for nonterminal of type \"%s\".", e.Unsatisfied));
+			}
 		}
 		exitRule();
 		return lhs;
@@ -456,8 +488,19 @@ public class Parser
 		Expression lhs = expression1();
 		if(firstSetSatisfied(NonTerminal.OP0))
 		{
-			Token op = op0();
-			lhs = Command.newExpression(lhs, op, expression1());
+			Token op = null;
+			try 
+			{
+				op = op0();
+				lhs = Command.newExpression(lhs, op, expression1());
+			} 
+			catch (FirstSetUnsatisfiedException e) 
+			{
+				lhs = new Error(
+					((Command)lhs).lineNumber(),
+					((Command)lhs).charPosition(),
+					String.format("First set unsatisfied for nonterminal of type \"%s\".", e.Unsatisfied));
+			}
 		}
 		exitRule();
 		return lhs;
@@ -467,55 +510,31 @@ public class Parser
 	{
 		enterRule(NonTerminal.OP2);
 		Token token = null;
-		if(firstSetSatisfied(NonTerminal.OP2))
-		{
-			token = emitTerminal(reader.token());
-			reader.advance();
-		}
-		else
-			token = new Token(
-				Token.Kind.ERROR,
-				String.format("First set unsatisfied by token of kind \"%s\".", reader.kind()),
-				reader.token().getLineNumber(),
-				reader.token().getCharPos());
+		firstSetSatisfied(NonTerminal.OP2);
+		token = emitTerminal(reader.token());
+		reader.advance();
 		exitRule();
 		return token;
 	}
 	
-	private Token op1()
+	private Token op1() throws FirstSetUnsatisfiedException
 	{
 		enterRule(NonTerminal.OP1);
 		Token token = null;
-		if(firstSetSatisfied(NonTerminal.OP1))
-		{
-			token = emitTerminal(reader.token());
-			reader.advance();
-		}
-		else
-			token = new Token(
-				Token.Kind.ERROR,
-				String.format("First set unsatisfied by token of kind \"%s\".", reader.kind()),
-				reader.token().getLineNumber(),
-				reader.token().getCharPos());
+		requireFirstSetSatisfied(NonTerminal.OP1);
+		token = emitTerminal(reader.token());
+		reader.advance();
 		exitRule();
 		return token;
 	}
 	
-	private Token op0()
+	private Token op0() throws FirstSetUnsatisfiedException
 	{
 		enterRule(NonTerminal.OP0);
 		Token token = null;
-		if(firstSetSatisfied(NonTerminal.OP0))
-		{
-			token = emitTerminal(reader.token());
-			reader.advance();
-		}
-		else
-			token = new Token(
-				Token.Kind.ERROR,
-				String.format("First set unsatisfied by token of kind \"%s\".", reader.kind()),
-				reader.token().getLineNumber(),
-				reader.token().getCharPos());
+		requireFirstSetSatisfied(NonTerminal.OP0);
+		token = emitTerminal(reader.token());
+		reader.advance();		
 		exitRule();
 		return token;
 	}
@@ -539,6 +558,7 @@ public class Parser
 		}
 		catch (UnresolvableSymbolException e) 
 		{
+			exitRule();
 			return new Error(
 				dereferencedToken.getLineNumber(),
 				dereferencedToken.getCharPos(),
@@ -655,6 +675,12 @@ public class Parser
 		return nonTerminal.FirstSet.contains(reader.kind());
 	}
 	
+	private void requireFirstSetSatisfied(NonTerminal nonTerminal) throws FirstSetUnsatisfiedException
+	{
+		if(!firstSetSatisfied(nonTerminal))
+			throw new FirstSetUnsatisfiedException(nonTerminal);
+	}
+	
 	private Token require(Token.Kind kind) throws RequiredTokenException
 	{
 		if(reader.kind().equals(kind))
@@ -687,7 +713,7 @@ public class Parser
 		throw new UnresolvableSymbolException(token);
 	}
 	
-	private Symbol defineSymbol(Token token)
+	private Symbol defineSymbol(Token token) throws SymbolRedefinitionException
 	{
 		// Define the symbol.
 		if(symbolTables.peek().containsSymbol(token.getLexeme(), false))
@@ -695,7 +721,7 @@ public class Parser
 			errorReport.append(String.format("DeclareSymbolError(%d,%d)[%s already exists.]\n", token.getLineNumber(), token.getCharPos(), token.getLexeme()));
 			appendSymbolHistory(errorReport, symbolTables.peek());
 			errorReport.append("\n");
-			return symbolTables.peek().lookup(token.getLexeme());
+			throw new SymbolRedefinitionException(token);
 		}
 		else
 		{
