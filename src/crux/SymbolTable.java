@@ -27,11 +27,12 @@ public class SymbolTable
 			|| (checkParentScopes && parent != null && parent.containsSymbol(identifier, true));
 	}
 	
-	public void define(String identifier)
+	public Symbol define(String identifier, int lineNumber, int charPosition)
 	{
-		Symbol symbol = new Symbol(identifier);
+		Symbol symbol = new Symbol(identifier, lineNumber, charPosition);
 		definedSymbols.put(identifier, symbol);
 		declarationOrder.add(symbol);
+		return symbol;
 	}
 	
 	public Symbol lookup(String identifier)
