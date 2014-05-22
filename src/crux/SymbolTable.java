@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import types.Type;
+
 public class SymbolTable
 {
 	private final SymbolTable parent;
@@ -27,9 +29,9 @@ public class SymbolTable
 			|| (checkParentScopes && parent != null && parent.containsSymbol(identifier, true));
 	}
 	
-	public Symbol define(String identifier, int lineNumber, int charPosition)
+	public Symbol define(String identifier, int lineNumber, int charPosition, Type type)
 	{
-		Symbol symbol = new Symbol(identifier, lineNumber, charPosition);
+		Symbol symbol = new Symbol(identifier, lineNumber, charPosition, type);
 		definedSymbols.put(identifier, symbol);
 		declarationOrder.add(symbol);
 		return symbol;
