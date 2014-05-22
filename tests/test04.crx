@@ -1,7 +1,9 @@
-// test index operator
+// function can't have void arguments
 
-array x: int[10][10][10];
+func foo(a:void) : void {
+  return ::foo(a);
+}
 
 func main() : void {
-  ::printInt(x[2][3][4]);
+  ::printInt(7);
 }

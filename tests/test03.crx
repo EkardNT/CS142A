@@ -1,12 +1,14 @@
-// test logical operators
+// test return type matches function
 
-var i:bool;
-var j:bool;
-var k:bool;
+func myInt(a:int) : int {
+  return a;
+}
+
+func myIntError(a:float) : int {
+  return a;
+}
 
 func main() : void {
-  ::printBool(i and j);
-  ::printBool(i or j);
-  ::printBool(not (i and j));
-  ::printBool(i and j or k);
+  ::myInt(7);
+  ::myIntError(7.0);
 }

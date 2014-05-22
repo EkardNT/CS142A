@@ -1,5 +1,11 @@
-// show many parameters to function
+// test if-else requires boolean condition
 
-func foo(a:int, b:int, c:int, d:int, e:int, f:int, g:int) : int {
-  return a + b * c or d - e / f and g;
+func main() : void {
+  var i:int;
+  var f:float;
+  var b:bool;
+
+  if (i) { ::printInt(7); }
+  if (f) { ::printInt(8); }
+  if (b) { ::printInt(9); }
 }

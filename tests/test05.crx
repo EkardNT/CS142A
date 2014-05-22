@@ -1,13 +1,9 @@
-// test comparisons
+// error in argument list
+
+func foo(e:error) : void {
+  ::printInt(7);
+}
 
 func main() : void {
-  var a:float;
-  var b:float;
-
-  ::printBool(a < b);
-  ::printBool(a <= b);
-  ::printBool(a == b);
-  ::printBool(a != b);
-  ::printBool(a >= b);
-  ::printBool(a > b);
+  ::printInt(8);
 }

@@ -1,11 +1,6 @@
-ast.DeclarationList(3,1)
-  ast.FunctionDefinition(3,1)[Symbol(main), []]
-    ast.StatementList(4,3)
-      ast.IfElseBranch(4,3)
-        ast.LiteralBool(4,11)[TRUE]
-        ast.StatementList(5,5)
-          ast.Call(5,5)[Symbol(printInt)]
-            ast.ExpressionList(5,16)
-              ast.LiteralInt(5,16)[5]
-        ast.StatementList(7,1)
+Error type-checking file.
+TypeError(8,15)[Cannot negate int.]
+TypeError(8,3)[Cannot call func(TypeList(bool)):void using TypeList(ErrorType(Cannot negate int.)).]
+TypeError(9,15)[Cannot negate float.]
+TypeError(9,3)[Cannot call func(TypeList(bool)):void using TypeList(ErrorType(Cannot negate float.)).]
 
