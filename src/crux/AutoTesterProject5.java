@@ -6,7 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 
-public class AutoTesterProject4 {
+public class AutoTesterProject5 {
 	
 	public static final int PASS = 0;
 	public static final int FAIL = 1;
@@ -37,10 +37,15 @@ public class AutoTesterProject4 {
 				outputStream.close();
                 //System.exit(-3);
             } else {
-            	ast.PrettyPrinter pp = new ast.PrettyPrinter();
-                syntaxTree.accept(pp);
-                outputStream.println(pp.toString());
-                outputStream.close();
+            	types.TypeChecker tc = new types.TypeChecker();
+                tc.check(syntaxTree);
+                if(tc.hasError()) {
+                	outputStream.println("Error type-checking file.");
+                	outputStream.println(tc.errorReport());
+                	outputStream.close();
+                } else {
+                	outputStream.println("Crux Program has no type errors.");
+                }
             }
 			
 		} catch (IOException e) {
@@ -118,10 +123,15 @@ public class AutoTesterProject4 {
 				outputStream.close();
                 //System.exit(-3);
             }else{
-            	ast.PrettyPrinter pp = new ast.PrettyPrinter();
-                syntaxTree.accept(pp);
-                outputStream.println(pp.toString());
-                outputStream.close();
+            	types.TypeChecker tc = new types.TypeChecker();
+                tc.check(syntaxTree);
+                if(tc.hasError()) {
+                	outputStream.println("Error type-checking file.");
+                	outputStream.println(tc.errorReport());
+                	outputStream.close();
+                } else {
+                	outputStream.println("Crux Program has no type errors.");
+                }
             }
 		} catch (IOException e) {
             System.err.println("Error opening output file: \"" + outputFilename + "\"");
@@ -180,7 +190,7 @@ public class AutoTesterProject4 {
 		String studentID = Compiler.studentID;
 		String uciNetID = Compiler.uciNetID;
 		
-		int publicTestcaseNum = 10;
+		int publicTestcaseNum = 15;
 		int privateTestcaseNum = 5;
 		
 		int publicPass = 0;

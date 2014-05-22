@@ -3,13 +3,10 @@ package crux;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
-
-import javax.management.openmbean.ArrayType;
-
 import ast.*;
 import ast.Error;
-import types.*;
 import crux.parsing.*;
+import types.*;
 
 public class Parser 
 {	
