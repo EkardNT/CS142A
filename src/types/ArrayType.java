@@ -2,41 +2,53 @@ package types;
 
 public class ArrayType extends Type {
     
-    private Type base;
-    private int extent;
-    
-    public ArrayType(int extent, Type base)
-    {
-        throw new RuntimeException("implement operators");
-        this.extent = extent;
-        this.base = base;
-    }
-    
-    public int extent()
-    {
-        return extent;
-    }
-    
-    public Type base()
-    {
-        return base;
-    }
-    
-    @Override
-    public String toString()
-    {
-        return "array[" + extent + "," + base + "]";
-    }
-    
-    @Override
-    public boolean equivalent(Type that)
-    {
-        if (that == null)
-            return false;
-        if (!(that instanceof IntType))
-            return false;
-        
-        ArrayType aType = (ArrayType)that;
-        return this.extent == aType.extent && base.equivalent(aType.base);
-    }
+	private Type element;
+	private int length;
+	
+	public ArrayType(int length, Type element)
+	{
+	    this.length = length;
+	    this.element = element;
+	}
+	
+	public int arrayLength()
+	{
+	    return length;
+	}
+	
+	public Type elementType()
+	{
+	    return element;
+	}
+	
+	@Override
+	public String toString()
+	{
+	    return "array[" + length + "," + element + "]";
+	}
+	
+	@Override
+	public Type index(Type that)
+	{
+	    return that instanceof IntType
+	    	? element
+	    	: super.index(that);
+	}
+	
+	@Override
+	public Type assign(Type source)
+	{
+	    return equivalent(source)
+	    	? new ArrayType(length, element)
+	    	: super.assign(source);
+	}
+	
+	@Override
+	public boolean equivalent(Type that)
+	{
+	    if (!(that instanceof IntType))
+	        return false;        
+	    ArrayType aType = (ArrayType)that;
+	    return this.length == aType.length && element.equivalent(aType.element);
+	}
 }

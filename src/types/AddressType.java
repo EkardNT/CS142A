@@ -6,7 +6,6 @@ public class AddressType extends Type {
     
     public AddressType(Type base)
     {
-        throw new RuntimeException("implement operators");
         this.base = base;
     }
     
@@ -20,14 +19,26 @@ public class AddressType extends Type {
     {
         return "Address(" + base + ")";
     }
+    
+    @Override
+    public Type deref()
+    {
+    	return base;
+    }
+    
+    @Override
+    public Type assign(Type source)
+    {
+    	return equivalent(source)
+    		? new AddressType(base)
+    		: super.assign(source);
+    }
 
     @Override
-    public boolean equivalent(Type that) {
-        if (that == null)
-            return false;
+    public boolean equivalent(Type that) 
+    {
         if (!(that instanceof AddressType))
-            return false;
-        
+            return false;        
         AddressType aType = (AddressType)that;
         return this.base.equivalent(aType.base);
     }

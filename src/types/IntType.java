@@ -1,56 +1,64 @@
 package types;
 
-public class IntType extends Type {
-
-    public IntType() {
-    }
-
+public class IntType extends Type 
+{
     @Override
     public String toString() {
         return "int";
     }
 
     @Override
-    public Type add(Type that) {
-        if (!(that instanceof IntType))
-            return super.add(that);
-        return new IntType();
+    public Type add(Type that)
+    {
+        return equivalent(that)
+        	? new IntType()
+        	: super.add(that);
     }
-
+    
     @Override
-    public Type sub(Type that) {
-        if (!(that instanceof IntType))
-            return super.sub(that);
-        return new IntType();
+    public Type sub(Type that)
+    {
+        return equivalent(that)
+        	? new IntType()
+        	: super.sub(that);
     }
-
+    
     @Override
-    public Type mul(Type that) {
-        if (!(that instanceof IntType))
-            return super.mul(that);
-        return new IntType();
+    public Type mul(Type that)
+    {
+        return equivalent(that)
+        	? new IntType()
+        	: super.mul(that);
     }
-
+    
     @Override
-    public Type div(Type that) {
-        if (!(that instanceof IntType))
-            return super.div(that);
-        return new IntType();
+    public Type div(Type that)
+    {
+        return equivalent(that)
+        	? new IntType()
+        	: super.div(that);
     }
-
+    
     @Override
-    public Type compare(Type that) {
-        if (!(that instanceof IntType))
-            return super.compare(that);
-        return new BoolType();
+    public Type compare(Type that)
+    {
+    	return equivalent(that)
+    		? new BoolType()
+    		: super.compare(that);
     }
-
+    
     @Override
-    public boolean equivalent(Type that) {
-        if (that == null)
-            return false;
-        if (!(that instanceof IntType))
-            return false;
-        return true;
+    public Type assign(Type source)
+    {
+    	return equivalent(source)
+    		? new IntType()
+    		: super.assign(source);
+    }
+    
+    @Override
+    public boolean equivalent(Type that)
+    {
+    	return that instanceof IntType
+    		|| (that instanceof FuncType && equivalent(((FuncType)that).returnType()));
     }
 }

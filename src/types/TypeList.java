@@ -32,11 +32,10 @@ public class TypeList extends Type implements Iterable<Type> {
     }
     
     @Override
-    public boolean equivalent(Type that) {
-        if (that == null)
-            return false;
+    public boolean equivalent(Type that) 
+    {
         if (!(that instanceof TypeList))
-            return false;
+        	return false;
         
         List<Type> olist = ((TypeList)that).list;
         
