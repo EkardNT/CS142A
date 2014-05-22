@@ -1,7 +1,6 @@
 package ast;
 
 import java.util.List;
-
 import crux.Symbol;
 
 public class FunctionDefinition extends Command implements Declaration {

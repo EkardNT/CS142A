@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
+import javax.management.openmbean.ArrayType;
+
 import ast.*;
 import ast.Error;
 import types.*;
@@ -290,13 +292,14 @@ public class Parser
 		enterScope();
 		require(Token.Kind.OPEN_PAREN);
 		ArrayList<Symbol> parameters = parameter_list();
+		TypeList paramTypes = new TypeList();
+		for(Symbol param : parameters)
+			paramTypes.add(param.getType());
 		require(Token.Kind.CLOSE_PAREN);
 		require(Token.Kind.COLON);
 		Type returnType = Type.getBaseType(type().getLexeme());
-		// TODO:
-		StatementList bodyStatements = statement_block(true);
-		TypeList paramTypes = new TypeList();
-		
+		nameSymbol.setType(new FuncType(paramTypes, returnType));
+		StatementList bodyStatements = statement_block(true);				
 		exitScope();
 		exitRule();
 		return new FunctionDefinition(
@@ -314,16 +317,25 @@ public class Parser
 		Symbol nameSymbol = defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)), null);
 		require(Token.Kind.COLON);
 		Type elementType = Type.getBaseType(type().getLexeme());
-		// TODO:
 		require(Token.Kind.OPEN_BRACKET);
-		ArrayList<String> dimensions = new ArrayList<String>();
-		dimensions.add(emitTerminal(require(Token.Kind.INTEGER)).getLexeme());
-		require(Token.Kind.CLOSE_BRACKET);
+		Stack<String> dimensions = new Stack<String>();
+		dimensions.push(emitTerminal(require(Token.Kind.INTEGER)).getLexeme());
+		require(Token.Kind.CLOSE_BRACKET);		
 		while(accept(Token.Kind.OPEN_BRACKET))
 		{
-			dimensions.add(emitTerminal(require(Token.Kind.INTEGER)).getLexeme());
+			dimensions.push(emitTerminal(require(Token.Kind.INTEGER)).getLexeme());
 			require(Token.Kind.CLOSE_BRACKET);
 		}
+		// Have to reverse the order of dimensions, because
+		// int arr[8][5][3]
+		//		   is -> array(8, array(5, array(3, int)))
+		// instead of -> array(3, array(5, array(8, int)))
+		Type arrayType = new types.ArrayType(Integer.parseInt(dimensions.pop()), elementType);
+		while(!dimensions.isEmpty())
+		{
+			arrayType = new types.ArrayType(Integer.parseInt(dimensions.pop()), arrayType);
+		}		
+		nameSymbol.setType(arrayType);
 		require(Token.Kind.SEMICOLON);
 		exitRule();
 		return new ArrayDeclaration(

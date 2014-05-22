@@ -5,7 +5,7 @@ import crux.Symbol;
 public class Error extends Command implements Declaration, Statement, Expression {
 	
 	private String message;
-
+	
 	public Error(int lineNum, int charPos, String message) {
 		super(lineNum, charPos);
 		this.message = message;
@@ -24,7 +24,7 @@ public class Error extends Command implements Declaration, Statement, Expression
 	
 	@Override
 	public Symbol symbol() {
-		return new Symbol(message, lineNumber(), charPosition());
+		return new Symbol(message, lineNumber(), charPosition(), new types.ErrorType(message));
 	}
 
 	@Override
