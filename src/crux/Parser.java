@@ -6,12 +6,8 @@ import java.util.Stack;
 
 import ast.*;
 import ast.Error;
-import crux.parsing.FirstSetUnsatisfiedException;
-import crux.parsing.LL1Reader;
-import crux.parsing.ParseNode;
-import crux.parsing.RequiredTokenException;
-import crux.parsing.SymbolRedefinitionException;
-import crux.parsing.UnresolvableSymbolException;
+import types.*;
+import crux.parsing.*;
 
 public class Parser 
 {	
@@ -31,12 +27,12 @@ public class Parser
 		this.symbolTables = new Stack<SymbolTable>();
 		root = current = null;
 		SymbolTable rootTable = new SymbolTable(null);
-		rootTable.define("readInt", 0, 0);
-		rootTable.define("readFloat", 0, 0);
-		rootTable.define("printBool", 0, 0);
-		rootTable.define("printInt", 0, 0);
-		rootTable.define("printFloat", 0, 0);
-		rootTable.define("println", 0, 0);
+		rootTable.define("readInt", 0, 0, new IntType());
+		rootTable.define("readFloat", 0, 0, new FloatType());
+		rootTable.define("printBool", 0, 0, new BoolType());
+		rootTable.define("printInt", 0, 0, new VoidType());
+		rootTable.define("printFloat", 0, 0, new VoidType());
+		rootTable.define("println", 0, 0, new VoidType());
 		symbolTables.push(rootTable);
 	}
 		
@@ -290,14 +286,17 @@ public class Parser
 	{
 		enterRule(NonTerminal.FUNCTION_DEFINITION);
 		Token funcToken = require(Token.Kind.FUNC);
-		Symbol nameSymbol = defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
+		Symbol nameSymbol = defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)), null);
 		enterScope();
 		require(Token.Kind.OPEN_PAREN);
 		ArrayList<Symbol> parameters = parameter_list();
 		require(Token.Kind.CLOSE_PAREN);
 		require(Token.Kind.COLON);
-		type();
+		Type returnType = Type.getBaseType(type().getLexeme());
+		// TODO:
 		StatementList bodyStatements = statement_block(true);
+		TypeList paramTypes = new TypeList();
+		
 		exitScope();
 		exitRule();
 		return new FunctionDefinition(
@@ -312,9 +311,10 @@ public class Parser
 	{
 		enterRule(NonTerminal.ARRAY_DECLARATION);
 		Token arrayToken = require(Token.Kind.ARRAY);
-		Symbol nameSymbol = defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
+		Symbol nameSymbol = defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)), null);
 		require(Token.Kind.COLON);
-		Token typeToken = type();
+		Type elementType = Type.getBaseType(type().getLexeme());
+		// TODO:
 		require(Token.Kind.OPEN_BRACKET);
 		ArrayList<String> dimensions = new ArrayList<String>();
 		dimensions.add(emitTerminal(require(Token.Kind.INTEGER)).getLexeme());
@@ -336,9 +336,10 @@ public class Parser
 	{
 		enterRule(NonTerminal.VARIABLE_DECLARATION);
 		Token varToken = require(Token.Kind.VAR);
-		Symbol nameSymbol = defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
+		Symbol nameSymbol = defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)), null);
 		require(Token.Kind.COLON);
-		Token typeToken = type();
+		Type varType = Type.getBaseType(type().getLexeme());
+		nameSymbol.setType(varType);
 		require(Token.Kind.SEMICOLON);
 		exitRule();
 		return new VariableDeclaration(
@@ -364,9 +365,10 @@ public class Parser
 	private Symbol parameter() throws RequiredTokenException, SymbolRedefinitionException
 	{
 		enterRule(NonTerminal.PARAMETER);
-		Symbol nameSymbol = defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)));
+		Symbol nameSymbol = defineSymbol(emitTerminal(require(Token.Kind.IDENTIFIER)), null);
 		require(Token.Kind.COLON);
-		type();
+		Type paramType = Type.getBaseType(type().getLexeme());
+		nameSymbol.setType(paramType);
 		exitRule();
 		return nameSymbol;
 	}
@@ -713,7 +715,7 @@ public class Parser
 		throw new UnresolvableSymbolException(token);
 	}
 	
-	private Symbol defineSymbol(Token token) throws SymbolRedefinitionException
+	private Symbol defineSymbol(Token token, Type type) throws SymbolRedefinitionException
 	{
 		// Define the symbol.
 		if(symbolTables.peek().containsSymbol(token.getLexeme(), false))
@@ -725,7 +727,7 @@ public class Parser
 		}
 		else
 		{
-			return symbolTables.peek().define(token.getLexeme(), token.getLineNumber(), token.getCharPos());
+			return symbolTables.peek().define(token.getLexeme(), token.getLineNumber(), token.getCharPos(), type);
 		}
 	}
 	

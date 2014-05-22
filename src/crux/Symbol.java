@@ -20,6 +20,7 @@ public class Symbol
 	public int getLineNumber() { return lineNumber; }
 	public int getCharPosition() { return charPosition; }
 	public Type getType() { return type; }
+	public void setType(Type type) { this.type = type; }
 	
 	@Override
 	public String toString()
