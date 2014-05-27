@@ -1,0 +1,78 @@
+ast.DeclarationList(3,1)
+  ast.FunctionDefinition(3,1)[Symbol(validReturn1:func(TypeList(int)):int), [Symbol(a:int)]]
+    ast.StatementList(4,3)
+      ast.Return(4,3)
+        ast.Dereference(4,10)
+          ast.AddressOf(4,10)[a]
+  ast.FunctionDefinition(7,1)[Symbol(validReturn2:func(TypeList(int)):int), [Symbol(a:int)]]
+    ast.StatementList(8,3)
+      ast.IfElseBranch(8,3)
+        ast.LiteralBool(8,7)[TRUE]
+        ast.StatementList(9,5)
+          ast.Assignment(9,5)
+            ast.AddressOf(9,9)[a]
+            ast.LiteralInt(9,13)[3]
+        ast.StatementList(11,5)
+          ast.Return(11,5)
+            ast.Dereference(11,12)
+              ast.AddressOf(11,12)[a]
+      ast.Return(13,3)
+        ast.LiteralInt(13,10)[4]
+  ast.FunctionDefinition(16,1)[Symbol(missingReturn1:func(TypeList(int)):int), [Symbol(a:int)]]
+    ast.StatementList(17,3)
+      ast.IfElseBranch(17,3)
+        ast.LiteralBool(17,7)[TRUE]
+        ast.StatementList(18,5)
+          ast.Return(18,5)
+            ast.Dereference(18,12)
+              ast.AddressOf(18,12)[a]
+        ast.StatementList(20,1)
+  ast.FunctionDefinition(22,1)[Symbol(missingReturn2:func(TypeList(int)):int), [Symbol(a:int)]]
+    ast.StatementList(23,3)
+      ast.IfElseBranch(23,3)
+        ast.LiteralBool(23,7)[TRUE]
+        ast.StatementList(24,5)
+          ast.Return(24,5)
+            ast.Dereference(24,12)
+              ast.AddressOf(24,12)[a]
+        ast.StatementList(26,5)
+          ast.Assignment(26,5)
+            ast.AddressOf(26,9)[a]
+            ast.LiteralInt(26,13)[3]
+  ast.FunctionDefinition(30,1)[Symbol(missingReturn3:func(TypeList(int)):int), [Symbol(a:int)]]
+    ast.StatementList(31,3)
+      ast.IfElseBranch(31,3)
+        ast.LiteralBool(31,7)[FALSE]
+        ast.StatementList(32,5)
+          ast.Assignment(32,5)
+            ast.AddressOf(32,9)[a]
+            ast.LiteralInt(32,13)[3]
+        ast.StatementList(34,5)
+          ast.Return(34,5)
+            ast.Dereference(34,12)
+              ast.AddressOf(34,12)[a]
+  ast.FunctionDefinition(38,1)[Symbol(validReturn3:func(TypeList(int)):int), [Symbol(a:int)]]
+    ast.StatementList(39,3)
+      ast.WhileLoop(39,3)
+        ast.LiteralBool(39,10)[FALSE]
+        ast.StatementList(40,5)
+          ast.Return(40,5)
+            ast.Dereference(40,12)
+              ast.AddressOf(40,12)[a]
+      ast.Return(42,3)
+        ast.Dereference(42,10)
+          ast.AddressOf(42,10)[a]
+  ast.FunctionDefinition(45,1)[Symbol(missingReturn4:func(TypeList(int)):int), [Symbol(a:int)]]
+    ast.StatementList(46,3)
+      ast.WhileLoop(46,3)
+        ast.LiteralBool(46,9)[TRUE]
+        ast.StatementList(47,5)
+          ast.Return(47,5)
+            ast.Dereference(47,12)
+              ast.AddressOf(47,12)[a]
+  ast.FunctionDefinition(51,1)[Symbol(main:func(TypeList()):void), []]
+    ast.StatementList(52,3)
+      ast.Call(52,3)[Symbol(printInt:func(TypeList(int)):void)]
+        ast.ExpressionList(52,14)
+          ast.LiteralInt(52,14)[8]
+

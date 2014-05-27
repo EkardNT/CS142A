@@ -1,0 +1,20 @@
+ast.DeclarationList(3,1)
+  ast.FunctionDefinition(3,1)[Symbol(myInt:func(TypeList(int)):int), [Symbol(a:int)]]
+    ast.StatementList(4,3)
+      ast.Return(4,3)
+        ast.Dereference(4,10)
+          ast.AddressOf(4,10)[a]
+  ast.FunctionDefinition(7,1)[Symbol(myIntError:func(TypeList(float)):int), [Symbol(a:float)]]
+    ast.StatementList(8,3)
+      ast.Return(8,3)
+        ast.Dereference(8,10)
+          ast.AddressOf(8,10)[a]
+  ast.FunctionDefinition(11,1)[Symbol(main:func(TypeList()):void), []]
+    ast.StatementList(12,3)
+      ast.Call(12,3)[Symbol(myInt:func(TypeList(int)):int)]
+        ast.ExpressionList(12,11)
+          ast.LiteralInt(12,11)[7]
+      ast.Call(13,3)[Symbol(myIntError:func(TypeList(float)):int)]
+        ast.ExpressionList(13,16)
+          ast.LiteralFloat(13,16)[7.0]
+

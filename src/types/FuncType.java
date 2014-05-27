@@ -95,4 +95,9 @@ public class FuncType extends Type
       FuncType thatType = (FuncType)that;
       return this.ret.equivalent(thatType.ret) && this.args.equivalent(thatType.args);
    }
+   
+   @Override
+	public boolean isPrimitive() {
+		return false;
+	}
 }

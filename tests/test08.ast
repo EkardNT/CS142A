@@ -1,0 +1,31 @@
+ast.DeclarationList(3,1)
+  ast.FunctionDefinition(3,1)[Symbol(andInt:func(TypeList(int, int)):bool), [Symbol(a:int), Symbol(b:int)]]
+    ast.StatementList(4,3)
+      ast.Return(4,3)
+        ast.LogicalAnd(4,12)
+          ast.Dereference(4,10)
+            ast.AddressOf(4,10)[a]
+          ast.Dereference(4,16)
+            ast.AddressOf(4,16)[b]
+  ast.FunctionDefinition(7,1)[Symbol(andFloat:func(TypeList(float, float)):bool), [Symbol(a:float), Symbol(b:float)]]
+    ast.StatementList(8,3)
+      ast.Return(8,3)
+        ast.LogicalAnd(8,12)
+          ast.Dereference(8,10)
+            ast.AddressOf(8,10)[a]
+          ast.Dereference(8,16)
+            ast.AddressOf(8,16)[b]
+  ast.FunctionDefinition(11,1)[Symbol(andBool:func(TypeList(bool, bool)):bool), [Symbol(a:bool), Symbol(b:bool)]]
+    ast.StatementList(12,3)
+      ast.Return(12,3)
+        ast.LogicalAnd(12,12)
+          ast.Dereference(12,10)
+            ast.AddressOf(12,10)[a]
+          ast.Dereference(12,16)
+            ast.AddressOf(12,16)[b]
+  ast.FunctionDefinition(15,1)[Symbol(main:func(TypeList()):void), []]
+    ast.StatementList(16,3)
+      ast.Call(16,3)[Symbol(printBool:func(TypeList(bool)):void)]
+        ast.ExpressionList(16,15)
+          ast.LiteralBool(16,15)[TRUE]
+

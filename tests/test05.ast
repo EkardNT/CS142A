@@ -1,0 +1,12 @@
+ast.DeclarationList(3,1)
+  ast.FunctionDefinition(3,1)[Symbol(foo:func(TypeList(ErrorType(Unkown type: error))):void), [Symbol(e:ErrorType(Unkown type: error))]]
+    ast.StatementList(4,3)
+      ast.Call(4,3)[Symbol(printInt:func(TypeList(int)):void)]
+        ast.ExpressionList(4,14)
+          ast.LiteralInt(4,14)[7]
+  ast.FunctionDefinition(7,1)[Symbol(main:func(TypeList()):void), []]
+    ast.StatementList(8,3)
+      ast.Call(8,3)[Symbol(printInt:func(TypeList(int)):void)]
+        ast.ExpressionList(8,14)
+          ast.LiteralInt(8,14)[8]
+

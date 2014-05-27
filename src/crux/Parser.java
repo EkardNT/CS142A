@@ -3,6 +3,7 @@ package crux;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+
 import ast.*;
 import ast.Error;
 import crux.parsing.*;
@@ -26,12 +27,21 @@ public class Parser
 		this.symbolTables = new Stack<SymbolTable>();
 		root = current = null;
 		SymbolTable rootTable = new SymbolTable(null);
-		rootTable.define("readInt", 0, 0, new IntType());
-		rootTable.define("readFloat", 0, 0, new FloatType());
-		rootTable.define("printBool", 0, 0, new BoolType());
-		rootTable.define("printInt", 0, 0, new VoidType());
-		rootTable.define("printFloat", 0, 0, new VoidType());
-		rootTable.define("println", 0, 0, new VoidType());
+		TypeList paramTypes = new TypeList();
+		rootTable.define("readInt", 0, 0, new FuncType(paramTypes, new IntType()));
+		paramTypes = new TypeList();
+		rootTable.define("readFloat", 0, 0, new FuncType(paramTypes, new FloatType()));
+		paramTypes = new TypeList();
+		paramTypes.append(new BoolType());
+		rootTable.define("printBool", 0, 0, new FuncType(paramTypes, new VoidType()));
+		paramTypes = new TypeList();
+		paramTypes.append(new IntType());
+		rootTable.define("printInt", 0, 0, new FuncType(paramTypes, new VoidType()));
+		paramTypes = new TypeList();
+		paramTypes.append(new FloatType());
+		rootTable.define("printFloat", 0, 0, new FuncType(paramTypes, new VoidType()));
+		paramTypes = new TypeList();
+		rootTable.define("println", 0, 0, new FuncType(paramTypes, new VoidType()));
 		symbolTables.push(rootTable);
 	}
 		
@@ -291,7 +301,7 @@ public class Parser
 		ArrayList<Symbol> parameters = parameter_list();
 		TypeList paramTypes = new TypeList();
 		for(Symbol param : parameters)
-			paramTypes.add(param.getType());
+			paramTypes.append(param.getType());
 		require(Token.Kind.CLOSE_PAREN);
 		require(Token.Kind.COLON);
 		Type returnType = Type.getBaseType(type().getLexeme());

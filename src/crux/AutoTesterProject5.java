@@ -6,6 +6,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 
+import ast.PrettyPrinter;
+
 public class AutoTesterProject5 {
 	
 	public static final int PASS = 0;
@@ -18,6 +20,7 @@ public class AutoTesterProject5 {
 		String inputFilename = String.format("tests/testP%02d.crx", testNum);
 		String outputFilename = String.format("tests/testP%02d.rea", testNum);
 		String expectedFilename = String.format("tests/testP%02d.out", testNum);
+		
 		
 		Scanner s = null;
         try {
@@ -103,6 +106,7 @@ public class AutoTesterProject5 {
 		String inputFilename = String.format("tests/test%02d.crx", testNum);
 		String outputFilename = String.format("tests/test%02d.rea", testNum);
 		String expectedFilename = String.format("tests/test%02d.out", testNum);
+		String astFilename = String.format("tests/test%02d.ast", testNum);
 		
 		Scanner s = null;
         try {
@@ -117,12 +121,21 @@ public class AutoTesterProject5 {
         
 		try {
 			PrintStream outputStream = new PrintStream(outputFilename);
+			PrintStream astStream = new PrintStream(astFilename);
 			if (p.hasError()) {
 				outputStream.println("Error parsing file.");
 				outputStream.println(p.errorReport());
 				outputStream.close();
+				astStream.println("Error parsing file.");
+				astStream.println(p.errorReport());
+				astStream.close();
                 //System.exit(-3);
             }else{
+            	PrettyPrinter pretty = new PrettyPrinter();
+            	syntaxTree.accept(pretty);
+            	astStream.println(pretty.toString());
+            	astStream.close();
+            	
             	types.TypeChecker tc = new types.TypeChecker();
                 tc.check(syntaxTree);
                 if(tc.hasError()) {

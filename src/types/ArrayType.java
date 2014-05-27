@@ -46,9 +46,14 @@ public class ArrayType extends Type {
 	@Override
 	public boolean equivalent(Type that)
 	{
-	    if (!(that instanceof IntType))
+	    if (!(that instanceof ArrayType))
 	        return false;        
 	    ArrayType aType = (ArrayType)that;
 	    return this.length == aType.length && element.equivalent(aType.element);
+	}
+	
+	@Override
+	public boolean isPrimitive() {
+		return false;
 	}
 }

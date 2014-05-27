@@ -52,4 +52,9 @@ public class BoolType extends Type
 	    return that instanceof BoolType
 	    	|| (that instanceof FuncType && equivalent(((FuncType)that).returnType()));
 	}
+	
+	@Override
+	public boolean isPrimitive() {
+		return true;
+	}
 }    

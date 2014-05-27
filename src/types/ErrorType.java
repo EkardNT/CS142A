@@ -30,4 +30,9 @@ public class ErrorType extends Type {
         
         return message.equals(((ErrorType)that).message);
     }
+    
+    @Override
+	public boolean isPrimitive() {
+		return false;
+	}
 }

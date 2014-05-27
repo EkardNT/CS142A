@@ -1,0 +1,6 @@
+ast.DeclarationList(3,1)
+  ast.FunctionDefinition(3,1)[Symbol(main:func(TypeList()):int), []]
+    ast.StatementList(4,3)
+      ast.Return(4,3)
+        ast.LiteralInt(4,10)[7]
+

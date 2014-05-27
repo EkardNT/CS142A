@@ -1,0 +1,7 @@
+ast.DeclarationList(3,1)
+  ast.FunctionDefinition(3,1)[Symbol(main:func(TypeList()):void), []]
+    ast.StatementList(4,3)
+      ast.VariableDeclaration(4,3)[Symbol(a:void)]
+      ast.Call(5,3)[Symbol(println:func(TypeList()):void)]
+        ast.ExpressionList(5,13)
+

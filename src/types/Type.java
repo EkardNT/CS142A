@@ -71,6 +71,8 @@ public abstract class Type {
         return new ErrorType("Cannot assign " + source + " to " + this + ".");
     }
     
+    public abstract boolean isPrimitive();
+    
     // Perform a structural equivalence test
     abstract public boolean equivalent(Type that);
 }

@@ -42,4 +42,9 @@ public class AddressType extends Type {
         AddressType aType = (AddressType)that;
         return this.base.equivalent(aType.base);
     }
+    
+    @Override
+	public boolean isPrimitive() {
+		return false;
+	}
 }

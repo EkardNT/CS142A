@@ -1,0 +1,7 @@
+ast.DeclarationList(3,1)
+  ast.FunctionDefinition(3,1)[Symbol(main:func(TypeList()):void), []]
+    ast.StatementList(4,3)
+      ast.Return(4,3)
+        ast.Call(4,10)[Symbol(main:func(TypeList()):void)]
+          ast.ExpressionList(4,17)
+

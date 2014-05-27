@@ -1,0 +1,14 @@
+ast.DeclarationList(3,1)
+  ast.FunctionDefinition(3,1)[Symbol(foo:func(TypeList(void)):void), [Symbol(a:void)]]
+    ast.StatementList(4,3)
+      ast.Return(4,3)
+        ast.Call(4,10)[Symbol(foo:func(TypeList(void)):void)]
+          ast.ExpressionList(4,16)
+            ast.Dereference(4,16)
+              ast.AddressOf(4,16)[a]
+  ast.FunctionDefinition(7,1)[Symbol(main:func(TypeList()):void), []]
+    ast.StatementList(8,3)
+      ast.Call(8,3)[Symbol(printInt:func(TypeList(int)):void)]
+        ast.ExpressionList(8,14)
+          ast.LiteralInt(8,14)[7]
+

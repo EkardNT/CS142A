@@ -55,4 +55,9 @@ public class TypeList extends Type implements Iterable<Type> {
     {
         return list.iterator();
     }
+    
+    @Override
+	public boolean isPrimitive() {
+		return false;
+	}
 }

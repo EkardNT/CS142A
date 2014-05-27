@@ -13,4 +13,9 @@ public class VoidType extends Type {
         return that instanceof VoidType
         	|| (that instanceof FuncType && equivalent(((FuncType)that).returnType()));
     }
+    
+    @Override
+	public boolean isPrimitive() {
+		return false;
+	}
 }

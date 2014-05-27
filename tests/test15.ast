@@ -1,0 +1,7 @@
+ast.DeclarationList(3,1)
+  ast.ArrayDeclaration(3,1)[Symbol(x:array[3,array[3,array[3,void]]])]
+  ast.FunctionDefinition(5,1)[Symbol(main:func(TypeList()):void), []]
+    ast.StatementList(6,3)
+      ast.Call(6,3)[Symbol(println:func(TypeList()):void)]
+        ast.ExpressionList(6,13)
+

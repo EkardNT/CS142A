@@ -62,4 +62,9 @@ public class FloatType extends Type
     	return that instanceof FloatType
     		|| (that instanceof FuncType && equivalent(((FuncType)that).returnType()));
     }
+    
+    @Override
+	public boolean isPrimitive() {
+		return true;
+	}
 }

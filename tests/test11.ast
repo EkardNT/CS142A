@@ -1,0 +1,28 @@
+ast.DeclarationList(3,1)
+  ast.FunctionDefinition(3,1)[Symbol(main:func(TypeList()):void), []]
+    ast.StatementList(4,3)
+      ast.VariableDeclaration(4,3)[Symbol(i:int)]
+      ast.VariableDeclaration(5,3)[Symbol(f:float)]
+      ast.VariableDeclaration(6,3)[Symbol(b:bool)]
+      ast.WhileLoop(8,3)
+        ast.Dereference(8,10)
+          ast.AddressOf(8,10)[i]
+        ast.StatementList(8,15)
+          ast.Call(8,15)[Symbol(printInt:func(TypeList(int)):void)]
+            ast.ExpressionList(8,26)
+              ast.LiteralInt(8,26)[7]
+      ast.WhileLoop(9,3)
+        ast.Dereference(9,10)
+          ast.AddressOf(9,10)[f]
+        ast.StatementList(9,15)
+          ast.Call(9,15)[Symbol(printInt:func(TypeList(int)):void)]
+            ast.ExpressionList(9,26)
+              ast.LiteralInt(9,26)[8]
+      ast.WhileLoop(10,3)
+        ast.Dereference(10,10)
+          ast.AddressOf(10,10)[b]
+        ast.StatementList(10,15)
+          ast.Call(10,15)[Symbol(printInt:func(TypeList(int)):void)]
+            ast.ExpressionList(10,26)
+              ast.LiteralInt(10,26)[9]
+

@@ -61,4 +61,9 @@ public class IntType extends Type
     	return that instanceof IntType
     		|| (that instanceof FuncType && equivalent(((FuncType)that).returnType()));
     }
+
+	@Override
+	public boolean isPrimitive() {
+		return true;
+	}
 }
