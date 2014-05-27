@@ -11,7 +11,7 @@ public class TypeChecker implements CommandVisitor {
     private HashMap<Command, Type> typeMap;
     private StringBuffer errorBuffer;
     private Symbol currentFunctionSymbol = null;
-    private Stack<Boolean> returnFound;
+    private Stack<Integer> subStatementListsWithoutReturns;
 
     /* Useful error strings:
      *
@@ -35,7 +35,7 @@ public class TypeChecker implements CommandVisitor {
     {
         typeMap = new HashMap<Command, Type>();
         errorBuffer = new StringBuffer();
-        returnFound = new Stack<Boolean>();
+        subStatementListsWithoutReturns = new Stack<Integer>();
     }
 
     private void reportError(int lineNum, int charPos, String message)
@@ -89,8 +89,19 @@ public class TypeChecker implements CommandVisitor {
 
     @Override
     public void visit(StatementList node) {
+    	subStatementListsWithoutReturns.push(0);
+    	boolean hasReturn = false, nonEmpty = false;
         for(Statement s : node)
-        	((Command)s).accept(this);
+        {
+        	nonEmpty = true;
+        	Command c = (Command)s;
+        	c.accept(this);
+        	if(c instanceof Return)
+        		hasReturn = true;
+        }
+        int mySubsWithoutReturns = subStatementListsWithoutReturns.pop() + (hasReturn ? 0 : 1);
+        if(!hasReturn && mySubsWithoutReturns > 0)
+        	subStatementListsWithoutReturns.push(subStatementListsWithoutReturns.pop() + 1);
     }
 
     @Override
@@ -132,10 +143,14 @@ public class TypeChecker implements CommandVisitor {
 
     @Override
     public void visit(FunctionDefinition node) {
+    	subStatementListsWithoutReturns.push(0);
     	currentFunctionSymbol = node.function();    	
-    	// Recurse down tree.
+    	// Recurse down tree.        
         node.body().accept(this);
         currentFunctionSymbol = null;
+        if(!((FuncType)node.function().getType()).returnType().equivalent(new VoidType())
+        	&& subStatementListsWithoutReturns.pop() > 0)
+        	reportError(node.lineNumber(), node.charPosition(), "Not all paths in function " + node.function().getName() + " have a return.");
         
         VoidType type = new VoidType();
         
